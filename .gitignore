@@ -1,0 +1,18 @@
+*.o
+$.*
+
+hello.*
+
+*.lib
+*.rom
+*.ssd
+
+*.lbl
+*.lst
+*.map
+
+simple
+SIMPLE
+
+# Build artifacts directory
+build/

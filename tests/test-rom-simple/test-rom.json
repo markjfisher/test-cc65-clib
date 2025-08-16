@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "discTitle": "clibtest",
+  "discSize": 800,
+  "bootOption": "none",
+  "cycleNumber": 0,
+  "files": [
+    {
+      "fileName": "TEST-ROM",
+      "directory": "$",
+      "locked": false,
+      "loadAddress": "&001900",
+      "executionAddress": "&001900",
+      "contentPath": "$.TEST-ROM",
+      "type": "other"
+    }
+  ]
+}
