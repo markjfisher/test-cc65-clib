@@ -23,6 +23,12 @@ $(TEST_BUILD_DIR):
 $(ROM_PATH)/clib.rom:
 	@echo "Building cc65-clib ROM..."
 	cd $(CLIB_ROOT)/src && $(MAKE)
+	@echo "Copying ROM to test project roms directory..."
+	mkdir -p $(ROM_PATH)
+	cp $(CLIB_ROOT)/build/clib.rom $(ROM_PATH)/clib.rom
+	@echo "Copying ROM to emulator roms directory..."
+	mkdir -p $(HOME)/dev/bbc/roms
+	cp $(CLIB_ROOT)/build/clib.rom $(HOME)/dev/bbc/roms/clib.rom
 
 # Build the production cc65-clib.lib if needed  
 $(CC65_ROOT)/lib/$(CC_TARGET).lib:
@@ -32,7 +38,7 @@ $(CC65_ROOT)/lib/$(CC_TARGET).lib:
 # Build the C test executable
 $(TEST_BUILD_DIR)/test: test.c $(TEST_BUILD_DIR) $(CC65_ROOT)/lib/$(CC_TARGET).lib
 	@echo "Building comprehensive C test..."
-	$(CC65_ROOT)/bin/cl65 -t $(CC_TARGET) -Ln $(TEST_BUILD_DIR)/test.lbl --mapfile $(TEST_BUILD_DIR)/test.map --start-addr 0x1900 -o $(TEST_BUILD_DIR)/test test.c
+	$(CC65_ROOT)/bin/cl65 $(CC_ARGS) -t $(CC_TARGET) -Ln $(TEST_BUILD_DIR)/test.lbl --mapfile $(TEST_BUILD_DIR)/test.map --start-addr 0x1900 -o $(TEST_BUILD_DIR)/test test.c
 
 # Create test disk image
 test-disk: $(TEST_BUILD_DIR)/test $(ROM_PATH)/clib.rom
@@ -42,6 +48,26 @@ test-disk: $(TEST_BUILD_DIR)/test $(ROM_PATH)/clib.rom
 	@echo "Files ready:"
 	@echo "  ROM: $(ROM_PATH)/clib.rom"
 	@echo "  Disk: $(TEST_BUILD_DIR)/test.ssd"
+
+# Rebuild tasks for development workflow
+rebuild-cc65-lib:
+	@echo "Cleaning and rebuilding cc65 bbc-clib library..."
+	cd $(CC65_ROOT) && $(MAKE) -C libsrc TARGETS=$(CC_TARGET) clean
+	cd $(CC65_ROOT) && $(MAKE) -C libsrc TARGETS=$(CC_TARGET)
+
+rebuild-clib-rom:
+	@echo "Cleaning and rebuilding cc65-clib ROM..."
+	cd $(CLIB_ROOT)/src && $(MAKE) clean
+	cd $(CLIB_ROOT)/src && $(MAKE)
+	@echo "Copying ROM to test project roms directory..."
+	mkdir -p $(ROM_PATH)
+	cp $(CLIB_ROOT)/build/clib.rom $(ROM_PATH)/clib.rom
+	@echo "Copying ROM to emulator roms directory..."
+	mkdir -p $(HOME)/dev/bbc/roms
+	cp $(CLIB_ROOT)/build/clib.rom $(HOME)/dev/bbc/roms/clib.rom
+
+# Combined rebuild tasks
+rebuild-clib: rebuild-cc65-lib rebuild-clib-rom
 
 # Production build (same as regular build for C test)
 production-disk: test-disk
@@ -82,5 +108,6 @@ clean-all: clean
 	cd $(CC65_ROOT) && $(MAKE) -C libsrc TARGETS=$(CC_TARGET) clean
 	cd $(CLIB_ROOT)/src && $(MAKE) clean
 	rm -f $(ROM_PATH)/clib.rom
+	rm -f $(HOME)/dev/bbc/roms/clib.rom
 
-.PHONY: all test-disk production-disk simple-debug test-debug clean clean-debug clean-all production
+.PHONY: all test-disk production-disk simple-debug test-debug clean clean-debug clean-all production rebuild-cc65-lib rebuild-clib-rom rebuild-clib

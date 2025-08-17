@@ -22,9 +22,6 @@
 
         .include        "zeropage.inc"
 
-        .bss
-save_stack:     .res    1       ; Save original 6502 stack pointer
-
 .segment        "STARTUP"
 
 __Cstart:
@@ -158,3 +155,6 @@ print_decimal:
 print_char:
         jsr     OSWRCH
         rts
+
+        .bss
+save_stack:     .res    1       ; Save original 6502 stack pointer
