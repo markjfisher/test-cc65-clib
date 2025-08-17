@@ -56,6 +56,16 @@ simple-debug: clean-debug $(TEST_BUILD_DIR)
 	dfstool make --output $(TEST_BUILD_DIR)/simple-debug.ssd --overwrite simple-debug.json
 	@echo "Simple C debug test complete! File: $(TEST_BUILD_DIR)/simple-debug.ssd"
 
+# Build comprehensive C debug test
+test-debug: clean-debug $(TEST_BUILD_DIR)
+	@echo "Building comprehensive C debug test with fresh debug library..."
+	cd ../test-rom-simple && $(MAKE) ../../build/test-rom-simple/debug-clib.lib
+	$(CC65_ROOT)/bin/cc65 -t $(CC_TARGET) $(CC_ARGS) test.c
+	$(CC65_ROOT)/bin/ca65 -t $(CC_TARGET) --listing $(TEST_BUILD_DIR)/test.lst test.s
+	$(CC65_ROOT)/bin/ld65 -t $(CC_TARGET) -Ln $(TEST_BUILD_DIR)/test-debug.lbl --mapfile $(TEST_BUILD_DIR)/test-debug.map --start-addr 0x1900 -o $(TEST_BUILD_DIR)/test-debug test.o ../test-rom-simple/../../build/test-rom-simple/debug-clib.lib
+	dfstool make --output $(TEST_BUILD_DIR)/test-debug.ssd --overwrite test-debug.json
+	@echo "Comprehensive C debug test complete! File: $(TEST_BUILD_DIR)/test-debug.ssd"
+
 # Clean targets
 clean:
 	rm -rf $(TEST_BUILD_DIR)
@@ -73,4 +83,4 @@ clean-all: clean
 	cd $(CLIB_ROOT)/src && $(MAKE) clean
 	rm -f $(ROM_PATH)/clib.rom
 
-.PHONY: all test-disk production-disk simple-debug clean clean-debug clean-all production
+.PHONY: all test-disk production-disk simple-debug test-debug clean clean-debug clean-all production

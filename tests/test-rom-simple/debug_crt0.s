@@ -44,15 +44,11 @@ reset:
         lda        #'S'
         jsr        OSWRCH
 
-        ; Debug: Print before ROM detection  
-        lda        #'D'
-        jsr        OSWRCH
-
-        ; Check for cc65 CLIB ROM (REQUIRED!)
+        ; Check for cc65 CLIB ROM
         jsr        detect_clib_rom
 
         ; Debug: Print after ROM detection
-        lda        #'C'
+        lda        #'D'
         jsr        OSWRCH
 
         ; ROM must be present - exit with error if not found
@@ -79,40 +75,35 @@ rom_found:
         lda        #'['
         jsr        OSWRCH
         lda        clib_rom_slot
-        clc
-        adc        #'0'           ; Convert to ASCII digit
-        jsr        OSWRCH
+        jsr        print_hex_digit
         lda        #']'
         jsr        OSWRCH
 
-        ; Debug: Verify ROM function is accessible at expected address  
-        ; Print first 4 bytes of _strlen at $999C (should be 85 5E 86 5F)
-        lda        #'@'           ; Debug indicator
+        ; start new line after debug output
+        lda        #13
+        jsr        OSWRCH
+        lda        #10
         jsr        OSWRCH
 
-        ; Print 4 bytes in hex
-        lda        $999C          ; First byte (should be $85)
-        jsr        print_hex_byte
-        lda        $999D          ; Second byte (should be $5E) 
-        jsr        print_hex_byte
-        lda        $999E          ; Third byte (should be $86)
-        jsr        print_hex_byte
-        lda        $999F          ; Fourth byte (should be $5F)
-        jsr        print_hex_byte
 
-        ; Clean up registers for start of application
-        ldx        #$00         ; X = 0
-        txa                     ; A = 0
-        tay                     ; Y = 0
-        clc                     ; Clear carry
+        ; ; Debug: Verify ROM function is accessible at expected address  
+        ; ; Print first 4 bytes of _strlen at $999C (should be 85 5E 86 5F)
+        ; lda        #'@'           ; Debug indicator
+        ; jsr        OSWRCH
+
+        ; ; Print 4 bytes in hex
+        ; lda        $999C          ; First byte (should be $85)
+        ; jsr        print_hex_byte
+        ; lda        $999D          ; Second byte (should be $5E) 
+        ; jsr        print_hex_byte
+        ; lda        $999E          ; Third byte (should be $86)
+        ; jsr        print_hex_byte
+        ; lda        $999F          ; Fourth byte (should be $5F)
+        ; jsr        print_hex_byte
 
         ; Call main function directly (minimal setup)
         jsr        _main
-        ; jmp        callmain   ; not using this in debug version, it just gets argc/argv values
-
-        lda        #'X'           ; Debug indicator that we are exiting
-        jsr        OSWRCH
-
+        ; jsr        callmain   ; not using this in debug version, it just gets argc/argv values
 
 _exit:
         ; Invalidate ROM detection state to force fresh scan on next run
@@ -133,26 +124,27 @@ exit_restore_stack:
 ; print_hex_byte - Print byte in A as two hex digits
 ; Input: A = byte to print
 ; Destroys: A, X
-print_hex_byte:
-        ; Save original value
-        pha
 
-        ; Print high nibble
-        lsr                     ; Shift right 4 times
-        lsr
-        lsr  
-        lsr
-        jsr     print_hex_digit
+; print_hex_byte:
+;         ; Save original value
+;         pha
 
-        ; Print low nibble
-        pla                     ; Restore original
-        and     #$0F            ; Keep only low nibble
-        jsr     print_hex_digit
-        rts
+;         ; Print high nibble
+;         lsr                     ; Shift right 4 times
+;         lsr
+;         lsr  
+;         lsr
+;         jsr     print_hex_digit
 
-; print_hex_digit - Print single hex digit (0-15)
-; Input: A = digit (0-15)
-; Destroys: A
+;         ; Print low nibble
+;         pla                     ; Restore original
+;         and     #$0F            ; Keep only low nibble
+;         jsr     print_hex_digit
+;         rts
+
+; ; print_hex_digit - Print single hex digit (0-15)
+; ; Input: A = digit (0-15)
+; ; Destroys: A
 print_hex_digit:
         cmp     #10
         bcc     print_decimal   ; 0-9

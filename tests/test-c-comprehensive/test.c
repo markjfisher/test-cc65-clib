@@ -10,6 +10,9 @@
 /* BBC OS functions for simple output */
 void __fastcall__ OSWRCH(unsigned char c);
 
+/* BBC OS read character - direct ROM call at FFE0 */
+char (*OSRDCH)(void) = (char (*)(void))0xFFE0;
+
 /* Simple output functions */
 void print_char(char c) {
     OSWRCH(c);
@@ -19,6 +22,11 @@ void print_string(const char* s) {
     while (*s) {
         print_char(*s++);
     }
+}
+
+void wait_for_key(void) {
+    print_string("\r\n--- Press any key to continue ---\r\n");
+    OSRDCH();  /* Direct BBC OS call */
 }
 
 void print_newline(void) {
@@ -74,9 +82,9 @@ int main(void) {
     int positive_result;
     int math_a = 15, math_b = 3;
     
-    print_string("Comprehensive CLIB ROM Test Starting");
+    print_string("CLIB ROM Test Starting");
     print_newline();
-    print_string("Testing ROM vs Local function separation");
+    print_string("Testing ROM vs Local fn separation");
     print_newline();
     print_newline();
     
@@ -85,7 +93,7 @@ int main(void) {
     print_newline();
     
     /* Test strlen */
-    print_string("1. strlen: ");
+    print_string("1. 'Hello ROM!' strlen: ");
     test_length = strlen(test_string);
     print_decimal(test_length);
     print_string(" chars");
@@ -112,6 +120,21 @@ int main(void) {
     result = strcmp("ABC", "ABC");
     print_string("'ABC'=='ABC' = ");
     print_decimal(result);
+    print_string(" (== 0)");
+    print_newline();
+
+    print_string("b. strcmp: ");
+    result = strcmp("ABC", "CDE");
+    print_string("'ABC'=='CDE' = ");
+    print_decimal(result);
+    print_string(" (< 0)");
+    print_newline();
+    
+    print_string("c. strcmp: ");
+    result = strcmp("CDE", "ABC");
+    print_string("'CDE'=='ABC' = ");
+    print_decimal(result);
+    print_string(" (> 0)");
     print_newline();
     
     /* Test strncpy */
@@ -126,12 +149,13 @@ int main(void) {
     /* Test strchr */
     print_string("6. strchr: ");
     if (strchr(test_string, 'R')) {
-        print_string("found 'R' in string");
+        print_string("found 'R' in 'Hello ROM!'");
     } else {
         print_string("'R' not found");
     }
     print_newline();
-    print_newline();
+    
+    wait_for_key();
     
     /* === MEMORY FUNCTIONS === */
     print_string("=== MEMORY FUNCTIONS ===");
@@ -150,18 +174,34 @@ int main(void) {
     print_string("8. memset: ");
     memset(memory_buffer, 'X', 5);
     memory_buffer[5] = 0;
-    print_string("set to '");
+    print_string("= '");
     print_string(memory_buffer);
-    print_string("'");
+    print_string("' (== 'XXXXX')");
     print_newline();
     
     /* Test memcmp */
-    print_string("9. memcmp: ");
+    print_string("9. memcmp: ABC:ABC ");
     result = memcmp("ABC", "ABC", 3);
-    print_string("compare result = ");
+    print_string("result = ");
     print_decimal(result);
+    print_string(" (== 0)");
     print_newline();
+    
+    print_string("b. memcmp: ABC:DEF ");
+    result = memcmp("ABC", "DEF", 3);
+    print_string("result = ");
+    print_decimal(result);
+    print_string(" (< 0)");
     print_newline();
+    
+    print_string("c. memcmp: DEF:ABC ");
+    result = memcmp("DEF", "ABC", 3);
+    print_string("result = ");
+    print_decimal(result);
+    print_string(" (> 0)");
+    print_newline();
+    
+    wait_for_key();
     
     /* === CHARACTER FUNCTIONS === */
     print_string("=== CHARACTER FUNCTIONS ===");
@@ -174,11 +214,23 @@ int main(void) {
     print_string(" (1=true)");
     print_newline();
     
+    print_string(" b. isalpha('0'): ");
+    result = isalpha('0') ? 1 : 0;
+    print_decimal(result);
+    print_string(" (0=false)");
+    print_newline();
+    
     /* Test isdigit */
     print_string("11. isdigit('5'): ");
     result = isdigit('5') ? 1 : 0;
     print_decimal(result);
     print_string(" (1=true)");
+    print_newline();
+    
+    print_string(" b. isdigit('X'): ");
+    result = isdigit('X') ? 1 : 0;
+    print_decimal(result);
+    print_string(" (0=false)");
     print_newline();
     
     /* Test toupper */
@@ -192,7 +244,8 @@ int main(void) {
     print_char(tolower('Z'));
     print_string("' (should be 'z')");
     print_newline();
-    print_newline();
+    
+    wait_for_key();
     
     /* === MATH FUNCTIONS === */
     print_string("=== MATH FUNCTIONS ===");
@@ -221,7 +274,8 @@ int main(void) {
     result = math_a % math_b;
     print_decimal(result);
     print_newline();
-    print_newline();
+    
+    wait_for_key();
     
     /* === CONVERSION FUNCTIONS === */
     print_string("=== CONVERSION FUNCTIONS ===");
@@ -233,12 +287,11 @@ int main(void) {
     print_decimal(result);
     print_newline();
     
-    print_newline();
+    wait_for_key();
+    
     print_string("=== TEST COMPLETE ===");
     print_newline();
-    print_string("All functions tested successfully!");
-    print_newline();
-    print_string("This validates ROM/local function separation.");
+    print_string("All functions tested");
     print_newline();
     
     return 0;
