@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo "Old build - do not use"
-exit 1
-
 # Build script for BBC Micro CLIB ROM testing framework
 # Builds ROM and multiple test programs using cc65 bbc-clib target
 

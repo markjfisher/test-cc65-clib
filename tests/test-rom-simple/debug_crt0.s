@@ -6,7 +6,7 @@
 
         .export         _exit
         .export         __STARTUP__ : absolute = 1      ; Mark as startup
-        
+
         .import         _main                   ; Application's main function (C convention)
         .import         detect_clib_rom
         .import         clib_rom_available
@@ -15,54 +15,66 @@
         .import         print_error_and_exit
         .import         rom_error_msg
         .import         OSWRCH                  ; For debug output
-        
+        .import         __HIMEM__               ; Top of memory (defined by linker)
+        .importzp       c_sp                    ; C software stack pointer
+
         .export         __Cstart
-                
+
         .include        "zeropage.inc"
-        
+
         .bss
-save_s:        .res        1                ; save stack pointer
+save_stack:     .res    1       ; Save original 6502 stack pointer
 
 .segment        "STARTUP"
 
 __Cstart:
+        ; Save stack pointer for clean exit
+        tsx
+        stx        save_stack
+
+        ; Setup minimal C runtime
+        ; Setup software stack pointer to top of memory
+        lda        #<__HIMEM__
+        sta        c_sp
+        lda        #>__HIMEM__
+        sta        c_sp+1
 
 reset:
         ; Debug: Print startup indicator
         lda        #'S'
         jsr        OSWRCH
-        
+
         ; Debug: Print before ROM detection  
         lda        #'D'
         jsr        OSWRCH
-        
+
         ; Check for cc65 CLIB ROM (REQUIRED!)
         jsr        detect_clib_rom
-        
+
         ; Debug: Print after ROM detection
         lda        #'C'
         jsr        OSWRCH
-        
+
         ; ROM must be present - exit with error if not found
         lda        clib_rom_available
         bne        rom_found
-        
+
         ; Debug: Print ROM not found
         lda        #'N'
         jsr        OSWRCH
-        
+
         ; ROM not found - display error and exit
         lda        #<rom_error_msg
         ldx        #>rom_error_msg
         jsr        print_error_and_exit
         ; After error message, halt completely - don't continue to rom_found
-        rts
-        
+        jmp        exit_restore_stack
+
 rom_found:
         ; Debug: Print ROM found
         lda        #'F'
         jsr        OSWRCH
-        
+
         ; Debug: Print ROM slot number
         lda        #'['
         jsr        OSWRCH
@@ -72,12 +84,12 @@ rom_found:
         jsr        OSWRCH
         lda        #']'
         jsr        OSWRCH
-        
+
         ; Debug: Verify ROM function is accessible at expected address  
         ; Print first 4 bytes of _strlen at $999C (should be 85 5E 86 5F)
         lda        #'@'           ; Debug indicator
         jsr        OSWRCH
-        
+
         ; Print 4 bytes in hex
         lda        $999C          ; First byte (should be $85)
         jsr        print_hex_byte
@@ -87,26 +99,34 @@ rom_found:
         jsr        print_hex_byte
         lda        $999F          ; Fourth byte (should be $5F)
         jsr        print_hex_byte
-        
-        ; Save stack pointer for clean exit
-        tsx
-        stx        save_s                
-        
+
+        ; Clean up registers for start of application
+        ldx        #$00         ; X = 0
+        txa                     ; A = 0
+        tay                     ; Y = 0
+        clc                     ; Clear carry
+
         ; Call main function directly (minimal setup)
         jsr        _main
+        ; jmp        callmain   ; not using this in debug version, it just gets argc/argv values
+
+        lda        #'X'           ; Debug indicator that we are exiting
+        jsr        OSWRCH
+
 
 _exit:
         ; Invalidate ROM detection state to force fresh scan on next run
         lda        #0
         sta        clib_rom_available  ; Clear "ROM found" flag
         sta        clib_rom_slot       ; Clear slot number
-        
+
         ; Restore original ROMSEL before exit
         lda        original_romsel
         sta        $FE30
-        
-        ; Restore stack and return to OS
-        ldx        save_s                
+
+exit_restore_stack:
+        ; Restore original 6502 hardware stack pointer
+        ldx        save_stack
         txs
         rts
 
@@ -116,14 +136,14 @@ _exit:
 print_hex_byte:
         ; Save original value
         pha
-        
+
         ; Print high nibble
         lsr                     ; Shift right 4 times
         lsr
         lsr  
         lsr
         jsr     print_hex_digit
-        
+
         ; Print low nibble
         pla                     ; Restore original
         and     #$0F            ; Keep only low nibble

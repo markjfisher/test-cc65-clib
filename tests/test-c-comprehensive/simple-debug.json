@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "discTitle": "csimple",
+  "discSize": 800,
+  "bootOption": "none",
+  "cycleNumber": 0,
+  "files": [
+    {
+      "fileName": "SIMPLE",
+      "directory": "$",
+      "locked": false,
+      "loadAddress": "&001900",
+      "executionAddress": "&001900",
+      "contentPath": "../../build/test-c-comprehensive/simple-debug",
+      "type": "other"
+    }
+  ]
+}

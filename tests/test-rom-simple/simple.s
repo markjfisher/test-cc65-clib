@@ -12,6 +12,12 @@
 .code
 
 _main:
+    ; go to new line
+    lda #13            ; CR
+    jsr OSWRCH
+    lda #10            ; LF
+    jsr OSWRCH
+
     ; Print startup message
     ldx #0
 :   lda startup_msg,x
@@ -38,14 +44,14 @@ test_strlen:
     jsr OSWRCH
 
 test_abs:
-    ; Test abs(-42)
-    lda #<(-42)        ; Low byte of -42
-    ldx #>(-42)        ; High byte of -42  
+    ; Test abs(-69)
+    lda #<(-69)        ; Low byte of -69
+    ldx #>(-69)        ; High byte of -69  
     jsr _abs
-    ; Result should be 42
+    ; Result should be 69
     
     ; Convert to decimal and print (simple case)
-    ; 42 = 4*10 + 2
+    ; 69 = 6*10 + 9
     ldy #0
 :   cmp #10
     bcc print_digit
