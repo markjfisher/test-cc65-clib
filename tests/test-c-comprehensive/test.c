@@ -294,5 +294,5 @@ int main(void) {
     print_string("All functions tested");
     print_newline();
     
-    return 0;
+    return 42;
 }
