@@ -63,6 +63,7 @@ rebuild-clib-rom:
 	@echo "Cleaning and rebuilding cc65-clib ROM..."
 	cd $(CLIB_ROOT)/src && $(MAKE) clean
 	cd $(CLIB_ROOT)/src && $(MAKE)
+	@echo "ROM build complete - manifest files automatically updated in cc65 project"
 	@echo "Copying ROM and VICE symbol files to test project roms directory..."
 	mkdir -p $(ROM_PATH)
 	cp $(CLIB_ROOT)/build/clib.rom $(ROM_PATH)/clib.rom
@@ -75,7 +76,7 @@ rebuild-clib-rom:
 	cp $(CLIB_ROOT)/build/clib-mos.lbl $(HOME)/dev/bbc/roms/clib-mos.lbl
 
 # Combined rebuild tasks
-rebuild-clib: rebuild-cc65-lib rebuild-clib-rom
+rebuild-clib: rebuild-clib-rom rebuild-cc65-lib
 
 # Production build (same as regular build for C test)
 production-disk: test-disk
