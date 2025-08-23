@@ -18,8 +18,8 @@ copy-rom:
 	@echo "Copying ROM and library files..."
 	@mkdir -p $(ROMS_DIR)
 	@cp $(CLIB_PROJECT)/build/clib.rom $(ROMS_DIR)/
-	@cp $(CLIB_PROJECT)/build/clib.lib $(ROMS_DIR)/
-	@cp $(CLIB_PROJECT)/build/clib.map $(ROMS_DIR)/
+	# @cp $(CLIB_PROJECT)/build/clib.lib $(ROMS_DIR)/
+	# @cp $(CLIB_PROJECT)/build/clib.map $(ROMS_DIR)/
 	@echo "ROM files copied to $(ROMS_DIR)/"
 	@ls -la $(ROMS_DIR)/
 

@@ -23,12 +23,16 @@ $(TEST_BUILD_DIR):
 $(ROM_PATH)/clib.rom:
 	@echo "Building cc65-clib ROM..."
 	cd $(CLIB_ROOT)/src && $(MAKE)
-	@echo "Copying ROM to test project roms directory..."
+	@echo "Copying ROM and VICE symbol files to test project roms directory..."
 	mkdir -p $(ROM_PATH)
 	cp $(CLIB_ROOT)/build/clib.rom $(ROM_PATH)/clib.rom
-	@echo "Copying ROM to emulator roms directory..."
+	cp $(CLIB_ROOT)/build/clib.lbl $(ROM_PATH)/clib.lbl
+	cp $(CLIB_ROOT)/build/clib-mos.lbl $(ROM_PATH)/clib-mos.lbl
+	@echo "Copying ROM and VICE symbol files to emulator roms directory..."
 	mkdir -p $(HOME)/dev/bbc/roms
 	cp $(CLIB_ROOT)/build/clib.rom $(HOME)/dev/bbc/roms/clib.rom
+	cp $(CLIB_ROOT)/build/clib.lbl $(HOME)/dev/bbc/roms/clib.lbl
+	cp $(CLIB_ROOT)/build/clib-mos.lbl $(HOME)/dev/bbc/roms/clib-mos.lbl
 
 # Build the production cc65-clib.lib if needed  
 $(CC65_ROOT)/lib/$(CC_TARGET).lib:
@@ -59,12 +63,16 @@ rebuild-clib-rom:
 	@echo "Cleaning and rebuilding cc65-clib ROM..."
 	cd $(CLIB_ROOT)/src && $(MAKE) clean
 	cd $(CLIB_ROOT)/src && $(MAKE)
-	@echo "Copying ROM to test project roms directory..."
+	@echo "Copying ROM and VICE symbol files to test project roms directory..."
 	mkdir -p $(ROM_PATH)
 	cp $(CLIB_ROOT)/build/clib.rom $(ROM_PATH)/clib.rom
-	@echo "Copying ROM to emulator roms directory..."
+	cp $(CLIB_ROOT)/build/clib.lbl $(ROM_PATH)/clib.lbl
+	cp $(CLIB_ROOT)/build/clib-mos.lbl $(ROM_PATH)/clib-mos.lbl
+	@echo "Copying ROM and VICE symbol files to emulator roms directory..."
 	mkdir -p $(HOME)/dev/bbc/roms
 	cp $(CLIB_ROOT)/build/clib.rom $(HOME)/dev/bbc/roms/clib.rom
+	cp $(CLIB_ROOT)/build/clib.lbl $(HOME)/dev/bbc/roms/clib.lbl
+	cp $(CLIB_ROOT)/build/clib-mos.lbl $(HOME)/dev/bbc/roms/clib-mos.lbl
 
 # Combined rebuild tasks
 rebuild-clib: rebuild-cc65-lib rebuild-clib-rom
@@ -108,6 +116,10 @@ clean-all: clean
 	cd $(CC65_ROOT) && $(MAKE) -C libsrc TARGETS=$(CC_TARGET) clean
 	cd $(CLIB_ROOT)/src && $(MAKE) clean
 	rm -f $(ROM_PATH)/clib.rom
+	rm -f $(ROM_PATH)/clib.lbl
+	rm -f $(ROM_PATH)/clib-mos.lbl
 	rm -f $(HOME)/dev/bbc/roms/clib.rom
+	rm -f $(HOME)/dev/bbc/roms/clib.lbl
+	rm -f $(HOME)/dev/bbc/roms/clib-mos.lbl
 
 .PHONY: all test-disk production-disk simple-debug test-debug clean clean-debug clean-all production rebuild-cc65-lib rebuild-clib-rom rebuild-clib

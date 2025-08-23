@@ -14,9 +14,6 @@ while getopts "d:h" opt; do
       echo "Options:"
       echo "  -d <disk_image>    Disk image file (default: build/test-c-comprehensive/test.ssd)"
       echo "  -h                 Show this help message"
-      echo ""
-      echo "Environment variables:"
-      echo "  BEEBEM_DATA_DIR    Data directory for BeebEm (default: D:\\bbc\\roms)"
       exit 0
       ;;
     \?)
