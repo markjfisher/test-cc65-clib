@@ -22,16 +22,6 @@ production: production-disk
 	@echo "  ROM: $(ROM_PATH)/clib.rom"
 	@echo "  Disk: $(TEST_BUILD_DIR)/simple.ssd"
 
-# Build DEBUG library for testing (uses local debug_crt0.s)
-$(TEST_BUILD_DIR)/debug-clib.lib: debug_crt0.s $(CC65_ROOT)/libsrc/$(CC_TARGET)/*.s | $(TEST_BUILD_DIR)
-	@echo "Building DEBUG $(CC_TARGET) library with local debug_crt0.s..."
-	@mkdir -p $(TEST_BUILD_DIR)/libwrk
-	$(CC65_ROOT)/bin/ca65 -t $(CC_TARGET) -o $(TEST_BUILD_DIR)/libwrk/debug_crt0.o debug_crt0.s
-	$(CC65_ROOT)/bin/ca65 -t $(CC_TARGET) -o $(TEST_BUILD_DIR)/libwrk/rom_detect.o $(CC65_ROOT)/libsrc/$(CC_TARGET)/rom_detect.s  
-	$(CC65_ROOT)/bin/ca65 -t $(CC_TARGET) -o $(TEST_BUILD_DIR)/libwrk/rom_error.o $(CC65_ROOT)/libsrc/$(CC_TARGET)/rom_error.s
-	$(CC65_ROOT)/bin/ca65 -t $(CC_TARGET) -o $(TEST_BUILD_DIR)/libwrk/rom_stubs.o $(CC65_ROOT)/libsrc/$(CC_TARGET)/rom_stubs.s
-	rm -f $(TEST_BUILD_DIR)/debug-clib.lib
-	$(CC65_ROOT)/bin/ar65 a $(TEST_BUILD_DIR)/debug-clib.lib $(TEST_BUILD_DIR)/libwrk/debug_crt0.o $(TEST_BUILD_DIR)/libwrk/rom_detect.o $(TEST_BUILD_DIR)/libwrk/rom_error.o $(TEST_BUILD_DIR)/libwrk/rom_stubs.o
 
 # Build cc65 bbc-clib library if needed (PRODUCTION version)
 $(CC65_ROOT)/lib/$(CC_TARGET).lib: $(CC65_ROOT)/libsrc/$(CC_TARGET)/*.s
