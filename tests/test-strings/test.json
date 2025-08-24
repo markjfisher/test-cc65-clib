@@ -11,7 +11,7 @@
       "locked": false,
       "loadAddress": "&001900",
       "executionAddress": "&001900", 
-      "contentPath": "/home/markf/dev/bbc/test-cc65-clib/build/test-c-comprehensive/test",
+      "contentPath": "/home/markf/dev/bbc/test-cc65-clib/build/test-strings/test",
       "type": "other"
     }
   ]
