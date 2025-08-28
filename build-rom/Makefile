@@ -19,7 +19,7 @@ rebuild-clib: rebuild-cc65-lib rebuild-clib-rom
 
 rebuild-clib-rom:
 	@echo "Cleaning and rebuilding cc65-clib ROM..."
-	cd $(CLIB_ROOT)/src && $(MAKE)
+	cd $(CLIB_ROOT)/src && $(MAKE) clean generate
 	@echo "ROM build complete - manifest files generated, and copied to cc65"
 	@echo "Copying ROM and VICE symbol files to test project roms directory..."
 	mkdir -p $(ROM_PATH)

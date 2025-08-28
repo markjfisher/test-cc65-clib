@@ -11,6 +11,7 @@ test_dirs=(
   "tests/test-c-comprehensive"
   "tests/test-math"
   "tests/test-strings"
+  "tests/test-break-handler"
 )
 
 # Configuration
