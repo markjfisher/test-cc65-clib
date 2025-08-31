@@ -9,7 +9,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 test_dirs=(
   "tests/test-c-comprehensive"
-  "tests/test-math"
+  "tests/test-maths"
   "tests/test-strings"
   "tests/test-break-handler"
 )

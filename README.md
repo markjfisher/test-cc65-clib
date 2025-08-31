@@ -13,10 +13,9 @@ test-cc65-clib/
 │   ├── clib.lib        # 492KB stub library
 │   └── clib.map        # Symbol addresses
 ├── tests/              # Test programs
-│   ├── test-basic/     # Basic functionality (abs, atoi)
 │   ├── test-strings/   # String functions (strlen, strcpy)
-│   ├── test-math/      # Math functions (abs, labs, itoa)
-│   └── test-rom-detection/ # ROM detection testing
+│   ├── test-maths/     # Math functions (abs, labs, itoa)
+│   └── ...
 └── build.sh           # Main build script
 ```
 

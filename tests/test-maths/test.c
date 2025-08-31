@@ -6,14 +6,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <conio.h>
 
 int main(void) {
     long big_negative = -98765L;
     char buffer[20];
     int value;
     
-    printf("=== BBC CLIB ROM Math Test ===\n");
-    printf("Testing math functions...\n\n");
+    printf("=== BBC CLIB ROM Maths Test ===\n");
+    printf("Testing maths functions...\n\n");
     
     // Test abs()
     printf("abs(-123) = %d\n", abs(-123));
@@ -38,8 +39,9 @@ int main(void) {
     itoa(value * 2, buffer, 10);
     printf("atoi(\"999\") * 2 = %s\n", buffer);
     
-    printf("\nMath test completed successfully!\n");
-    printf("All ROM math functions working.\n");
+    printf("\nMath test completed\n");
+    printf("Press a key to exit\n");
+    cgetc();
     
     return 0;
 }

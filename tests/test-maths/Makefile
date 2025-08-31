@@ -1,5 +1,5 @@
 BUILD_DIR = ../../build
-TEST_BUILD_DIR = $(BUILD_DIR)/test-math
+TEST_BUILD_DIR = $(BUILD_DIR)/test-maths
 CC_TARGET = bbc-clib
 CC_ARGS = -Osir
 
