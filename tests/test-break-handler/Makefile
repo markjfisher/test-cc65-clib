@@ -1,6 +1,6 @@
 BUILD_DIR = ../../build
 TEST_BUILD_DIR = $(BUILD_DIR)/test-break-handler
-CC_TARGET = bbc-clib
+CC_TARGET = bbc
 CC_ARGS = -Osir
 
 all: test-disk

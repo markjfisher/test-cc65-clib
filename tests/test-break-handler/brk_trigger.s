@@ -16,6 +16,7 @@ _irq_handler := $DC1C
 _cause_brk_non_esc:
         brk
         .byte $02          ; non-ESC => handled by our BRK handler (guarded path)
+        .byte "Esc",0
 
         ; realign for debugger only, this is not needed for the code, just for the debugger view
         nop
@@ -25,6 +26,7 @@ _cause_brk_non_esc:
 _cause_brk_esc:
         brk
         .byte $1B          ; ESC => pass-through path (may exit/chain)
+        .byte "Esc pass",0
 
         ; realign for debugger only, this is not needed for the code, just for the debugger view
         nop
