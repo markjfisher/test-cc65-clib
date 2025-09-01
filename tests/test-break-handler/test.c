@@ -5,7 +5,7 @@
 /* Public C ABI from the library */
 extern unsigned char __fastcall__ set_brk_ret(void);
 extern unsigned char __fastcall__ set_brk_ret_debug(void);
-extern void          __fastcall__ clear_brk_ret(void);
+extern void          __fastcall__ disarm_brk_ret(void);
 
 /* BRK helpers (from brk_trigger.s) */
 extern void cause_brk_non_esc(void);
@@ -41,11 +41,11 @@ static void test_armed_nonesc(void) {
         printf("  Guard armed (A=0). Triggering BRK [$02]... ");
         cause_brk_non_esc();
         printf("\nERROR: fell through after BRK (should have long-jumped)!\n");
-        clear_brk_ret();
+        disarm_brk_ret();
         return;
     } else {
         printf("OK (A=1). Disarming...\n");
-        clear_brk_ret();
+        disarm_brk_ret();
         printf("Done.\n\n");
     }
 }
@@ -66,12 +66,12 @@ static void test_armed_esc(void) {
         cause_brk_esc();
         /* We should never get here */
         printf("ERROR: fell through after ESC BRK (pass-through expected)!\n");
-        clear_brk_ret();
+        disarm_brk_ret();
         return;
     } else {
         /* Armed path should never yield A=1 on ESC */
         printf("Unexpected: returned via armed path (A=%u)\n", (unsigned)r);
-        clear_brk_ret();
+        disarm_brk_ret();
     }
 }
 
