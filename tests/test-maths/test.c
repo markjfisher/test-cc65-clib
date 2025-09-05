@@ -12,6 +12,7 @@ int main(void) {
     long big_negative = -98765L;
     char buffer[20];
     int value;
+    char c;
     
     printf("=== BBC CLIB ROM Maths Test ===\n");
     printf("Testing maths functions...\n\n");
@@ -40,8 +41,11 @@ int main(void) {
     printf("atoi(\"999\") * 2 = %s\n", buffer);
     
     printf("\nMath test completed\n");
-    printf("Press a key to exit\n");
-    cgetc();
+    printf("Press q to exit\n");
+    c = 0;
+    while ((c = cgetc()) != 'q') {
+        printf("You pressed: %c\n", c);
+    };
     
     return 0;
 }

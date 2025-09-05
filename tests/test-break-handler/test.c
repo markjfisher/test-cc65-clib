@@ -6,6 +6,7 @@
 extern unsigned char __fastcall__ set_brk_ret(void);
 extern unsigned char __fastcall__ set_brk_ret_debug(void);
 extern void          __fastcall__ disarm_brk_ret(void);
+extern void          __fastcall__ set_brk_debug_mode_only(void);
 
 /* BRK helpers (from brk_trigger.s) */
 extern void cause_brk_non_esc(void);
@@ -19,16 +20,22 @@ static void wait_key(const char* prompt) {
     printf("\n");
 }
 
-static void choose_mode(void) {
+static int choose_mode(void) {
+    char ch = 0;
     printf("Select installer mode:\n");
     printf("  [P] Production  (pass-through -> OS)\n");
     printf("  [D] Debug       (pass-through -> bomb banner + hang)\n");
+    printf("  [Q] Quit\n");
     printf("> ");
-    for (;;) {
-        char ch = cgetc();
+    while (ch = cgetc()) {
+        printf("You pressed: %c\n", ch);
         if (ch == 'p' || ch == 'P') { install_guard = set_brk_ret;          printf("Production selected.\n\n"); break; }
-        if (ch == 'd' || ch == 'D') { install_guard = set_brk_ret_debug;    printf("Debug selected.\n\n");      break; }
+        if (ch == 'd' || ch == 'D') { install_guard = set_brk_ret_debug;    printf("Debug selected.\n\n");
+                                      set_brk_debug_mode_only();
+                                      break; }
+        if (ch == 'q' || ch == 'Q') return -1;
     }
+    return 0;
 }
 
 /* Test 1: Armed + non-ESC BRK -> should long-jump, return A=1, app recovers */
@@ -102,7 +109,12 @@ static void test_unarmed_esc(void) {
 
 int main(void) {
     char choice;
-    choose_mode();
+    int r;
+    r = choose_mode();
+    if (r == -1) {
+        printf("Exiting\n");
+        return 0;
+    }
 
     for (;;) {
         printf("BRK test menu (%s):\n", (install_guard == set_brk_ret) ? "Production" : "Debug");
