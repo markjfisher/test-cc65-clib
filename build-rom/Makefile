@@ -46,3 +46,5 @@ clean:
 	cd $(CLIB_ROOT)/src && $(MAKE) clean
 	-rm -f $(ROM_PATH)/clib*
 	-rm -f $(TARGET_ROM_COPY)/clib*
+	-rm -rf $(CC65_ROOT)/libwrk/bbc
+	-rm -rf $(CC65_ROOT)/libwrk/bbc-clib

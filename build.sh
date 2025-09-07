@@ -12,6 +12,7 @@ test_dirs=(
   "tests/test-maths"
   "tests/test-strings"
   "tests/test-break-handler"
+  "tests/test-files"
 )
 
 # Configuration
