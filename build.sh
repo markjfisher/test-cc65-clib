@@ -13,6 +13,7 @@ test_dirs=(
   "tests/test-strings"
   "tests/test-break-handler"
   "tests/test-files"
+  "tests/test-serial"
 )
 
 # Configuration
