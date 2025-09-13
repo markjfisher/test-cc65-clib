@@ -2,9 +2,12 @@
 * Test serial to Fujinet
 */
 
+#include <conio.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 /* BBC OS functions for simple output */
 void OSWRCH(unsigned char c);
@@ -53,6 +56,18 @@ int read_rs423_char(unsigned char *ch);
 #define THE_FUJI                      0x70
 
 #define GET_SSID_LEN                  100
+#define GET_HOSTS_LEN                 259  /* AC + 256 payload + checksum */
+#define GET_DEVICE_SLOTS_LEN          307  /* AC + 304 payload + checksum (8*38) */
+#define MAX_DISPLAY_FILENAME_LEN      36
+
+unsigned char response[GET_HOSTS_LEN];
+unsigned char device_response[GET_DEVICE_SLOTS_LEN];
+
+static void wait_key(const char* prompt) {
+    if (prompt) printf("%s", prompt);
+    cgetc();
+    printf("\n");
+}
 
 /* Simple output functions */
 void print_char(char c) {
@@ -233,7 +248,7 @@ void hex_dump(unsigned char *data, int len) {
 void fn_reset(void) {
     /* Setup serial ports for 9600 baud */
     setup_serial_ports();
-
+    
     /* Send reset command with 4 zero arguments */
     send_data(0xFF, 0x00, 0x00, 0x00, 0x00);
 
@@ -288,13 +303,12 @@ int read_serial_data(unsigned char *buffer, int length) {
 /* FujiNet get SSID command */
 void fn_get_ssid(void) {
     unsigned char response[GET_SSID_LEN];
-    unsigned char payload[GET_SSID_LEN - 3];
-    int i;
     int bytes_received = 0;
     int protocol_valid = 0;
     int checksum_valid = 0;
     unsigned char expected_checksum = 0;
     unsigned char received_checksum = 0;
+    unsigned char *payload_ptr;
     
     print_string("fn_get_ssid: Starting...");
     print_newline();
@@ -317,13 +331,11 @@ void fn_get_ssid(void) {
         if (response[0] == 'A' && response[1] == 'C') {
             protocol_valid = 1;
             
-            /* Extract payload (bytes 2-98) */
-            for (i = 0; i < (GET_SSID_LEN - 3); i++) {
-                payload[i] = response[i + 2];
-            }
+            /* Point to payload (bytes 2-98) */
+            payload_ptr = &response[2];
             
             /* Calculate expected checksum for payload */
-            expected_checksum = rs232_checksum(payload, GET_SSID_LEN - 3);
+            expected_checksum = rs232_checksum(payload_ptr, GET_SSID_LEN - 3);
             received_checksum = response[GET_SSID_LEN - 1];
             
             /* Validate checksum */
@@ -362,21 +374,272 @@ void fn_get_ssid(void) {
     }
 }
 
+/* FujiNet get hosts command */
+void fn_get_hosts(void) {
+
+    int bytes_received = 0;
+    int protocol_valid = 0;
+    int checksum_valid = 0;
+    unsigned char expected_checksum = 0;
+    unsigned char received_checksum = 0;
+    unsigned char *payload_ptr;
+    int i, j;
+    
+    print_string("fn_get_hosts: Starting...");
+    print_newline();
+    
+    /* Setup serial ports for 9600 baud (both input and output) */
+    setup_serial_ports();
+    
+    /* Send get hosts command with 4 zero arguments */
+    send_data(0xF4, 0x00, 0x00, 0x00, 0x00);
+    
+    /* Read GET_HOSTS_LEN bytes from RS423 buffer */
+    bytes_received = read_serial_data(response, GET_HOSTS_LEN);
+    
+    /* Reset everything back to screen/keyboard */
+    reset_serial_to_screen();
+    
+    /* Validate protocol: ACK + Completed + 256 payload + checksum */
+    if (bytes_received >= GET_HOSTS_LEN) {
+        /* Check for ACK ('A') and Completed ('C') */
+        if (response[0] == 'A' && response[1] == 'C') {
+            protocol_valid = 1;
+            
+            /* Point to payload (bytes 2-257) */
+            payload_ptr = &response[2];
+            
+            /* Calculate expected checksum for payload */
+            expected_checksum = rs232_checksum(payload_ptr, GET_HOSTS_LEN - 3);
+            received_checksum = response[GET_HOSTS_LEN - 1];
+            
+            /* Validate checksum */
+            if (expected_checksum == received_checksum) {
+                checksum_valid = 1;
+            }
+        }
+    }
+    
+    /* Display protocol validation results */
+    print_string("Protocol valid: ");
+    print_decimal(protocol_valid);
+    print_newline();
+    
+    print_string("Checksum valid: ");
+    print_decimal(checksum_valid);
+    print_newline();
+    
+    print_string("Expected checksum: ");
+    print_hex_byte(expected_checksum);
+    print_newline();
+    
+    print_string("Received checksum: ");
+    print_hex_byte(received_checksum);
+    print_newline();
+    
+    /* Display hosts if valid */
+    if (protocol_valid && checksum_valid) {
+        print_string("Hosts found:");
+        print_newline();
+        
+        /* Process 8 host slots of 32 bytes each */
+        for (i = 0; i < 8; i++) {
+            unsigned char *host_ptr = &payload_ptr[i * 32];
+            int has_data = 0;
+            
+            /* Check if this 32-byte slot has any non-zero data */
+            for (j = 0; j < 32; j++) {
+                if (host_ptr[j] != 0) {
+                    has_data = 1;
+                    break;
+                }
+            }
+            
+            if (has_data) {
+                print_string("Host ");
+                print_decimal(i + 1);
+                print_string(": ");
+                
+                /* Print the hostname (up to 32 chars, stop at first null) */
+                for (j = 0; j < 32; j++) {
+                    if (host_ptr[j] == 0) {
+                        break;
+                    }
+                    print_char(host_ptr[j]);
+                }
+                print_newline();
+            }
+        }
+    } else {
+        print_string("Invalid response - cannot display hosts");
+        print_newline();
+    }
+}
+
+/* FujiNet get device slots command */
+void fn_get_device_slots(void) {
+    int bytes_received = 0;
+    int protocol_valid = 0;
+    int checksum_valid = 0;
+    unsigned char expected_checksum = 0;
+    unsigned char received_checksum = 0;
+    unsigned char *payload_ptr;
+    int i, j;
+    
+    print_string("fn_get_device_slots: Starting...");
+    print_newline();
+    
+    /* Setup serial ports for 9600 baud (both input and output) */
+    setup_serial_ports();
+    
+    /* Send get device slots command with 4 zero arguments */
+    send_data(0xF2, 0x00, 0x00, 0x00, 0x00);
+    
+    /* Read GET_DEVICE_SLOTS_LEN bytes from RS423 buffer */
+    bytes_received = read_serial_data(device_response, GET_DEVICE_SLOTS_LEN);
+    
+    /* Reset everything back to screen/keyboard */
+    reset_serial_to_screen();
+    
+    /* Validate protocol: ACK + Completed + 304 payload + checksum */
+    if (bytes_received >= GET_DEVICE_SLOTS_LEN) {
+        /* Check for ACK ('A') and Completed ('C') */
+        if (device_response[0] == 'A' && device_response[1] == 'C') {
+            protocol_valid = 1;
+            
+            /* Point to payload (bytes 2-305) */
+            payload_ptr = &device_response[2];
+            
+            /* Calculate expected checksum for payload */
+            expected_checksum = rs232_checksum(payload_ptr, GET_DEVICE_SLOTS_LEN - 3);
+            received_checksum = device_response[GET_DEVICE_SLOTS_LEN - 1];
+            
+            /* Validate checksum */
+            if (expected_checksum == received_checksum) {
+                checksum_valid = 1;
+            }
+        }
+    }
+    
+    /* Display device slots if valid */
+    if (protocol_valid && checksum_valid) {
+        print_string("Device Slots:");
+        print_newline();
+        
+        /* Process 8 device slots of 38 bytes each */
+        for (i = 0; i < 8; i++) {
+            unsigned char *slot_ptr = &payload_ptr[i * 38];
+            uint8_t host_slot = slot_ptr[0];
+            uint8_t mode = slot_ptr[1];
+            char *filename = (char *)&slot_ptr[2];
+            int has_filename = 0;
+            
+            /* Check if filename has any non-zero data */
+            for (j = 0; j < MAX_DISPLAY_FILENAME_LEN; j++) {
+                if (filename[j] != 0) {
+                    has_filename = 1;
+                    break;
+                }
+            }
+            
+            print_string("Slot ");
+            print_decimal(i + 1);
+            print_string(": Host=");
+            print_decimal(host_slot);
+            print_string(", Mode=");
+            print_decimal(mode);
+            
+            if (has_filename) {
+                print_string(", File=");
+                /* Print the filename (up to 36 chars, stop at first null) */
+                for (j = 0; j < MAX_DISPLAY_FILENAME_LEN; j++) {
+                    if (filename[j] == 0) {
+                        break;
+                    }
+                    print_char(filename[j]);
+                }
+            } else {
+                print_string(", File=(empty)");
+            }
+            print_newline();
+        }
+    } else {
+        print_string("Invalid response - cannot display device slots");
+        print_newline();
+    }
+}
+
+void show_menu(void) {
+    print_string("=== FujiNet Serial Test Menu ===");
+    print_newline();
+    print_string("1. Reset FujiNet");
+    print_newline();
+    print_string("2. Get SSID");
+    print_newline();
+    print_string("3. Get Hosts");
+    print_newline();
+    print_string("4. Get Device Slots");
+    print_newline();
+    print_string("5. Exit");
+    print_newline();
+    print_string("Enter choice (1-5): ");
+}
+
 int main(void) {
+    char choice;
+    
     print_string("FujiNet Serial Test Starting...");
     print_newline();
-    
-    /* Test reset command */
-    // print_string("\n=== Testing Reset Command ===\n");
-    // fn_reset();
-    
-    /* Test get SSID command */
-    print_string("=== Testing Get SSID Command ===");
-    print_newline();
-    fn_get_ssid();
-    
-    print_string("Serial Test Complete!");
     print_newline();
     
-    return 42;
+    while (1) {
+        show_menu();
+        
+        /* Read a single character from keyboard */
+        choice = OSRDCH();
+        
+        print_newline();
+        print_newline();
+        
+        switch (choice) {
+            case '1':
+                print_string("=== Testing Reset Command ===");
+                print_newline();
+                fn_reset();
+                break;
+                
+            case '2':
+                print_string("=== Testing Get SSID Command ===");
+                print_newline();
+                fn_get_ssid();
+                break;
+                
+            case '3':
+                print_string("=== Testing Get Hosts Command ===");
+                print_newline();
+                fn_get_hosts();
+                break;
+                
+            case '4':
+                print_string("=== Testing Get Device Slots Command ===");
+                print_newline();
+                fn_get_device_slots();
+                break;
+                
+            case '5':
+                print_string("Exiting...");
+                print_newline();
+                return 0;
+                
+            default:
+                print_string("Invalid choice. Please enter 1-5.");
+                print_newline();
+                break;
+        }
+        
+        print_newline();
+        print_newline();
+        wait_key("Press a key...");
+        print_newline();
+    }
 }
