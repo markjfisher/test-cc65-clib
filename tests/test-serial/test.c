@@ -241,21 +241,58 @@ void fn_reset(void) {
     reset_serial_to_screen();
 }
 
+/* Read data from RS423 buffer with waiting */
+int read_serial_data(unsigned char *buffer, int length) {
+    int i;
+    int bytes_received = 0;
+    int wait_count = 0;
+    const int max_wait = 10000; /* Maximum wait cycles per byte */
+    
+    for (i = 0; i < length; i++) {
+        unsigned char ch = 0;
+        int result = 0;
+        wait_count = 0;
+        
+        /* Wait for data to be available in RS423 buffer */
+        do {
+            if (check_rs423_buffer()) {
+                result = read_rs423_char(&ch);
+                break;
+            }
+            wait_count++;
+        } while (wait_count < max_wait);
+        
+        if (wait_count >= max_wait) {
+            /* Timeout waiting for data - fill remaining with zeros and break */
+            while (i < length) {
+                buffer[i++] = 0;
+            }
+            break;
+        }
+        
+        if (result == 1) {
+            buffer[i] = ch;
+            bytes_received++;
+        } else {
+            /* No data available - fill remaining with zeros and break */
+            while (i < length) {
+                buffer[i++] = 0;
+            }
+            break;
+        }
+    }
+    
+    return bytes_received;
+}
+
 /* FujiNet get SSID command */
 void fn_get_ssid(void) {
     unsigned char response[GET_SSID_LEN];
+    unsigned char payload[GET_SSID_LEN - 3];
     int i;
     int bytes_received = 0;
-    int timeout_count = 0;
-    int max_wait_hit = 0;
-    int total_wait_cycles = 0;
-    int buffer_checks = 0;
-    int buffer_true_count = 0;
-    int first_byte_result = 0;
-    unsigned char first_byte_char = 0;
     int protocol_valid = 0;
     int checksum_valid = 0;
-    unsigned char payload[97];
     unsigned char expected_checksum = 0;
     unsigned char received_checksum = 0;
     
@@ -268,52 +305,8 @@ void fn_get_ssid(void) {
     /* Send get SSID command with 4 zero arguments */
     send_data(0xFE, 0x00, 0x00, 0x00, 0x00);
     
-    /* Read GET_SSID_LEN bytes from RS423 buffer with waiting */
-    for (i = 0; i < GET_SSID_LEN; i++) {
-        unsigned char ch = 0;
-        int result = 0;
-        int wait_count = 0;
-        const int max_wait = 10000; /* Maximum wait cycles per byte */
-        
-        /* Wait for data to be available in RS423 buffer */
-        do {
-            int buffer_status = check_rs423_buffer();
-            buffer_checks++;
-            if (buffer_status) {
-                buffer_true_count++;
-                result = read_rs423_char(&ch);
-                break;
-            }
-            wait_count++;
-        } while (wait_count < max_wait);
-        
-        total_wait_cycles += wait_count;
-        
-        if (wait_count >= max_wait) {
-            /* Timeout waiting for data - fill remaining with zeros and break */
-            max_wait_hit++;
-            timeout_count++;
-            while (i < GET_SSID_LEN) {
-                response[i++] = 0;
-            }
-            break;
-        }
-        
-        if (result == 1) {
-            response[i] = ch;
-            bytes_received++;
-        } else {
-            /* No data available - fill remaining with zeros and break */
-            if (i == 0) {
-                first_byte_result = result;
-                first_byte_char = ch;
-            }
-            while (i < GET_SSID_LEN) {
-                response[i++] = 0;
-            }
-            break;
-        }
-    }
+    /* Read GET_SSID_LEN bytes from RS423 buffer */
+    bytes_received = read_serial_data(response, GET_SSID_LEN);
     
     /* Reset everything back to screen/keyboard */
     reset_serial_to_screen();
