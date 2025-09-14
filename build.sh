@@ -88,6 +88,16 @@ create_json() {
   "cycleNumber": 0,
   "files": [
     {
+    "fileName": "!BOOT",
+    "directory": "$",
+    "discSide": 0,
+    "locked": false,
+    "loadAddress": "&000000",
+    "executionAddress": "&000000",
+    "contentPath": "${build_path}/../../BOOT.txt",
+    "type": "other"
+    },
+    {
       "fileName": "TEST",
       "directory": "\$",
       "locked": false,
