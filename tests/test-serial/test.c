@@ -60,7 +60,7 @@ int read_rs423_char(unsigned char *ch);
 #define GET_HOSTS_LEN                 259  /* AC + 256 payload + checksum */
 #define GET_DEVICE_SLOTS_LEN          307  /* AC + 304 payload + checksum (8*38) */
 #define MAX_DISPLAY_FILENAME_LEN      36
-#define NETWORK_BUFFER_LEN            2048 /* 2KB buffer for network reads */
+#define NETWORK_BUFFER_LEN            512
 
 /* Network command bytes */
 #define NET_CMD_OPEN                  'O'
@@ -77,6 +77,11 @@ int read_rs423_char(unsigned char *ch);
 // generic buffer for responses
 unsigned char response[512];
 unsigned char network_buffer[NETWORK_BUFFER_LEN];
+
+// Status response variables
+static int status_bytes_waiting = 0;
+static int status_connected = 0;
+static int status_error_ok = 0;
 
 static void wait_key(const char* prompt) {
     if (prompt) printf("%s", prompt);
@@ -571,8 +576,10 @@ void fn_network_test(void) {
     unsigned char expected_checksum = 0;
     unsigned char received_checksum = 0;
     const char *url = "n:http://httpbin.org/get";
+    unsigned char status_response[10];
     uint8_t checksum;
     int url_len, i;
+    char c;
 
     print_string("fn_network_test: Starting...");
     print_newline();
@@ -583,13 +590,14 @@ void fn_network_test(void) {
     url_len = strlen(url);    
     /* Clear the entire buffer first */
     for (i = 0; i < 256; i++) {
-        network_buffer[i] = 0;
+        network_buffer[i] = 0; //i & 0xFF;
     }
     
     /* Copy URL data into buffer */
     for (i = 0; i < url_len && i < 256; i++) {
         network_buffer[i] = url[i];
     }
+    network_buffer[i] = 0;
     checksum = rs232_checksum((unsigned char *) network_buffer, 256);
 
     /* Setup serial ports for 9600 baud (both input and output) */
@@ -599,22 +607,56 @@ void fn_network_test(void) {
     send_data_to_device(NETWORK_DEVICE, NET_CMD_OPEN, NET_MODE_READ, NET_TRANSLATION, 0, 0);    
     send_network_data(network_buffer, 256, checksum);
 
-    /* Send Read command for 2KB */
-    send_data_to_device(NETWORK_DEVICE, NET_CMD_READ, NETWORK_BUFFER_LEN & 0xFF, (NETWORK_BUFFER_LEN >> 8) & 0xFF, 0, 0);
+    /* *fx 21,1 - Flush RS423 serial input buffer */
+    // osbyte(osbyte_FLUSH_BUFFERS, FLUSH_SERIAL_INPUT_BUFFER, 0);
+
+    // osbyte(15, 0, 0); // clear all the buffers!
+
+    /* Send Status command to get bytes waiting */
+    send_data_to_device(NETWORK_DEVICE, NET_CMD_STATUS, 0, 0, 0, 0);
     
-    /* Read response from RS423 buffer */
-    bytes_received = read_serial_data(network_buffer, NETWORK_BUFFER_LEN);
+    /* Read status response (AACAC + 4 + chksum) */
+    {
+        int status_bytes = read_serial_data(status_response, 10);
+        
+        if (status_bytes >= 9 && status_response[0] == 'A' && status_response[1] == 'A' && status_response[2] == 'C') {
+            /* Parse status response and store in global variables */
+            status_bytes_waiting = status_response[5] | (status_response[6] << 8);
+            status_connected = status_response[7];
+            status_error_ok = status_response[8];
+        } else {
+            /* Status command failed, use fallback */
+            status_bytes_waiting = 512;
+            status_connected = 0;
+            status_error_ok = 0;
+        }
+        
+        /* Send Read command with actual bytes waiting */
+        send_data_to_device(NETWORK_DEVICE, NET_CMD_READ, status_bytes_waiting & 0xFF, (status_bytes_waiting >> 8) & 0xFF, 0, 0);
+        
+        /* Read response from RS423 buffer, skip the ACK and Complete bytes */
+        read_serial_data(network_buffer, 2);
+        bytes_received = read_serial_data(network_buffer, status_bytes_waiting);
+        read_serial_data(&c, 1);
+    }
     
     /* Reset everything back to screen/keyboard */
     reset_serial_to_screen();
-    
+   
+    wait_key("press a key...");
     /* Now we can safely print debug messages to screen */
-    print_string("Sent Open command");
-    print_newline();
-    print_string("Sent URL data");
+    hex_dump(status_response, 10);
+
+    print_string("Status: bytes_waiting=");
+    print_decimal(status_bytes_waiting);
+    print_string(", connected=");
+    print_decimal(status_connected);
+    print_string(", error_ok=");
+    print_decimal(status_error_ok);
     print_newline();
     print_string("Sent Read command");
     print_newline();
+    wait_key("press a key...");
     print_string("Read response");
     print_newline();
     
@@ -624,11 +666,11 @@ void fn_network_test(void) {
     print_newline();
     
     if (bytes_received > 0) {
-        print_string("HTTP Response (first 200 bytes):");
+        print_string("HTTP Response (first 100 bytes):");
         print_newline();
-        hex_dump(network_buffer, (bytes_received < 200) ? bytes_received : 200);
+        hex_dump(network_buffer, (bytes_received < 100) ? bytes_received : 100);
         
-        if (bytes_received > 200) {
+        if (bytes_received > 100) {
             print_string("... (truncated)");
             print_newline();
         }
@@ -642,7 +684,6 @@ void fn_network_test(void) {
     send_data_to_device(NETWORK_DEVICE, NET_CMD_CLOSE, 0, 0, 0, 0);
     reset_serial_to_screen();
     print_string("Sent Close command");
-    print_newline();
 }
 
 void show_menu(void) {
