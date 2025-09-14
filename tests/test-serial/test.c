@@ -52,16 +52,31 @@ int read_rs423_char(unsigned char *ch);
 #define RS423_INPUT_BUFFER            254  /* ADVAL(-2) */
 #define RS423_GET_CHAR                1    /* X=1 for RS423 in OSBYTE 145 */
 
-/* FujiNet device ID */
+/* FujiNet device IDs */
 #define THE_FUJI                      0x70
+#define NETWORK_DEVICE                0x71
 
 #define GET_SSID_LEN                  100
 #define GET_HOSTS_LEN                 259  /* AC + 256 payload + checksum */
 #define GET_DEVICE_SLOTS_LEN          307  /* AC + 304 payload + checksum (8*38) */
 #define MAX_DISPLAY_FILENAME_LEN      36
+#define NETWORK_BUFFER_LEN            2048 /* 2KB buffer for network reads */
+
+/* Network command bytes */
+#define NET_CMD_OPEN                  'O'
+#define NET_CMD_CLOSE                 'C'
+#define NET_CMD_READ                  'R'
+#define NET_CMD_STATUS                'S'
+#define NET_CMD_WRITE                 'W'
+
+/* Network modes */
+#define NET_MODE_READ                 0x04  /* bit 2 = READ */
+#define NET_MODE_WRITE                0x08  /* bit 3 = WRITE */
+#define NET_TRANSLATION               0x00  /* always 00 */
 
 // generic buffer for responses
 unsigned char response[512];
+unsigned char network_buffer[NETWORK_BUFFER_LEN];
 
 static void wait_key(const char* prompt) {
     if (prompt) printf("%s", prompt);
@@ -172,33 +187,6 @@ unsigned char rs232_checksum(unsigned char *buf, unsigned short len) {
     return (unsigned char)chk;
 }
 
-/* Send data to FujiNet with proper protocol */
-void send_data(unsigned char command, unsigned char arg1, unsigned char arg2, unsigned char arg3, unsigned char arg4) {
-    unsigned char packet[7];
-    unsigned char checksum;
-    
-    /* Build packet: device_id, command, arg1, arg2, arg3, arg4, checksum */
-    packet[0] = THE_FUJI;        /* Device ID */
-    packet[1] = command;         /* Command */
-    packet[2] = arg1;            /* Arg 1 */
-    packet[3] = arg2;            /* Arg 2 */
-    packet[4] = arg3;            /* Arg 3 */
-    packet[5] = arg4;            /* Arg 4 */
-    
-    /* Calculate checksum for first 6 bytes */
-    checksum = rs232_checksum(packet, 6);
-    packet[6] = checksum;
-    
-    /* Send the packet */
-    {
-        int i;
-        for (i = 0; i < 7; i++) {
-            OSWRCH(packet[i]);
-        }
-    }
-
-}
-
 /* Helper function to check if character is printable */
 int is_printable(unsigned char c) {
     return (c >= 32 && c <= 126);
@@ -242,13 +230,39 @@ void hex_dump(unsigned char *data, int len) {
     }
 }
 
+/* Send data to specific FujiNet device */
+void send_data_to_device(unsigned char device_id, unsigned char command, unsigned char arg1, unsigned char arg2, unsigned char arg3, unsigned char arg4) {
+    unsigned char packet[7];
+    unsigned char checksum;
+    
+    /* Build packet: device_id, command, arg1, arg2, arg3, arg4, checksum */
+    packet[0] = device_id;         /* Device ID */
+    packet[1] = command;           /* Command */
+    packet[2] = arg1;              /* Arg 1 */
+    packet[3] = arg2;              /* Arg 2 */
+    packet[4] = arg3;              /* Arg 3 */
+    packet[5] = arg4;              /* Arg 4 */
+    
+    /* Calculate checksum for first 6 bytes */
+    checksum = rs232_checksum(packet, 6);
+    packet[6] = checksum;
+    
+    /* Send the packet */
+    {
+        int i;
+        for (i = 0; i < 7; i++) {
+            OSWRCH(packet[i]);
+        }
+    }
+}
+
 /* FujiNet reset command */
 void fn_reset(void) {
     /* Setup serial ports for 9600 baud */
     setup_serial_ports();
     
     /* Send reset command with 4 zero arguments */
-    send_data(0xFF, 0x00, 0x00, 0x00, 0x00);
+    send_data_to_device(THE_FUJI, 0xFF, 0x00, 0x00, 0x00, 0x00);
 
     /* Reset everything back to screen/keyboard */
     reset_serial_to_screen();
@@ -315,7 +329,7 @@ void fn_get_ssid(void) {
     setup_serial_ports();
     
     /* Send get SSID command with 4 zero arguments */
-    send_data(0xFE, 0x00, 0x00, 0x00, 0x00);
+    send_data_to_device(THE_FUJI, 0xFE, 0x00, 0x00, 0x00, 0x00);
     
     /* Read GET_SSID_LEN bytes from RS423 buffer */
     bytes_received = read_serial_data(response, GET_SSID_LEN);
@@ -376,7 +390,7 @@ void fn_get_hosts(void) {
     setup_serial_ports();
     
     /* Send get hosts command with 4 zero arguments */
-    send_data(0xF4, 0x00, 0x00, 0x00, 0x00);
+    send_data_to_device(THE_FUJI, 0xF4, 0x00, 0x00, 0x00, 0x00);
     
     /* Read GET_HOSTS_LEN bytes from RS423 buffer */
     bytes_received = read_serial_data(response, GET_HOSTS_LEN);
@@ -460,7 +474,7 @@ void fn_get_device_slots(void) {
     setup_serial_ports();
     
     /* Send get device slots command with 4 zero arguments */
-    send_data(0xF2, 0x00, 0x00, 0x00, 0x00);
+    send_data_to_device(THE_FUJI, 0xF2, 0x00, 0x00, 0x00, 0x00);
     
     /* Read GET_DEVICE_SLOTS_LEN bytes from RS423 buffer */
     bytes_received = read_serial_data(response, GET_DEVICE_SLOTS_LEN);
@@ -536,6 +550,101 @@ void fn_get_device_slots(void) {
     }
 }
 
+/* Send network data to FujiNet */
+void send_network_data(const uint8_t *data, int length, uint8_t checksum) {
+    int i;
+    
+    /* Send exactly length bytes of data */
+    for (i = 0; i < length; i++) {
+        OSWRCH(data[i]);
+    }
+    
+    /* Calculate and send checksum for the data block */
+    OSWRCH(checksum);
+}
+
+/* FujiNet network test - fetch HTTP data */
+void fn_network_test(void) {
+    int bytes_received = 0;
+    int protocol_valid = 0;
+    int checksum_valid = 0;
+    unsigned char expected_checksum = 0;
+    unsigned char received_checksum = 0;
+    const char *url = "n:http://httpbin.org/get";
+    uint8_t checksum;
+    int url_len, i;
+
+    print_string("fn_network_test: Starting...");
+    print_newline();
+    print_string("URL: ");
+    print_string(url);
+    print_newline();
+    
+    url_len = strlen(url);    
+    /* Clear the entire buffer first */
+    for (i = 0; i < 256; i++) {
+        network_buffer[i] = 0;
+    }
+    
+    /* Copy URL data into buffer */
+    for (i = 0; i < url_len && i < 256; i++) {
+        network_buffer[i] = url[i];
+    }
+    checksum = rs232_checksum((unsigned char *) network_buffer, 256);
+
+    /* Setup serial ports for 9600 baud (both input and output) */
+    setup_serial_ports();
+    
+    /* Send Open command to Network device */
+    send_data_to_device(NETWORK_DEVICE, NET_CMD_OPEN, NET_MODE_READ, NET_TRANSLATION, 0, 0);    
+    send_network_data(network_buffer, 256, checksum);
+
+    /* Send Read command for 2KB */
+    send_data_to_device(NETWORK_DEVICE, NET_CMD_READ, NETWORK_BUFFER_LEN & 0xFF, (NETWORK_BUFFER_LEN >> 8) & 0xFF, 0, 0);
+    
+    /* Read response from RS423 buffer */
+    bytes_received = read_serial_data(network_buffer, NETWORK_BUFFER_LEN);
+    
+    /* Reset everything back to screen/keyboard */
+    reset_serial_to_screen();
+    
+    /* Now we can safely print debug messages to screen */
+    print_string("Sent Open command");
+    print_newline();
+    print_string("Sent URL data");
+    print_newline();
+    print_string("Sent Read command");
+    print_newline();
+    print_string("Read response");
+    print_newline();
+    
+    /* Display results */
+    print_string("Bytes received: ");
+    print_decimal(bytes_received);
+    print_newline();
+    
+    if (bytes_received > 0) {
+        print_string("HTTP Response (first 200 bytes):");
+        print_newline();
+        hex_dump(network_buffer, (bytes_received < 200) ? bytes_received : 200);
+        
+        if (bytes_received > 200) {
+            print_string("... (truncated)");
+            print_newline();
+        }
+    } else {
+        print_string("No data received");
+        print_newline();
+    }
+    
+    /* Send Close command */
+    setup_serial_ports();
+    send_data_to_device(NETWORK_DEVICE, NET_CMD_CLOSE, 0, 0, 0, 0);
+    reset_serial_to_screen();
+    print_string("Sent Close command");
+    print_newline();
+}
+
 void show_menu(void) {
     print_string("=== FujiNet Serial Test Menu ===");
     print_newline();
@@ -547,9 +656,11 @@ void show_menu(void) {
     print_newline();
     print_string("4. Get Device Slots");
     print_newline();
-    print_string("5. Exit");
+    print_string("5. Network Test (HTTP)");
     print_newline();
-    print_string("Enter choice (1-5): ");
+    print_string("6. Exit");
+    print_newline();
+    print_string("Enter choice (1-6): ");
 }
 
 int main(void) {
@@ -594,12 +705,18 @@ int main(void) {
                 break;
                 
             case '5':
+                print_string("=== Testing Network HTTP Command ===");
+                print_newline();
+                fn_network_test();
+                break;
+                
+            case '6':
                 print_string("Exiting...");
                 print_newline();
                 return 0;
                 
             default:
-                print_string("Invalid choice. Please enter 1-5.");
+                print_string("Invalid choice. Please enter 1-6.");
                 print_newline();
                 break;
         }
