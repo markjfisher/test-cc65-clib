@@ -60,8 +60,8 @@ int read_rs423_char(unsigned char *ch);
 #define GET_DEVICE_SLOTS_LEN          307  /* AC + 304 payload + checksum (8*38) */
 #define MAX_DISPLAY_FILENAME_LEN      36
 
-unsigned char response[GET_HOSTS_LEN];
-unsigned char device_response[GET_DEVICE_SLOTS_LEN];
+// generic buffer for responses
+unsigned char response[512];
 
 static void wait_key(const char* prompt) {
     if (prompt) printf("%s", prompt);
@@ -211,11 +211,10 @@ void hex_dump(unsigned char *data, int len) {
     
     for (i = 0; i < len; i += 8) {
         /* Print address */
-        print_string("    ");
         print_hex_byte((i >> 8) & 0xFF);
         print_hex_byte(i & 0xFF);
-        print_string("  ");
-        
+        print_string(" ");
+
         /* Print hex bytes */
         for (j = 0; j < 8 && (i + j) < len; j++) {
             print_hex_byte(data[i + j]);
@@ -227,7 +226,7 @@ void hex_dump(unsigned char *data, int len) {
             print_string("   ");
         }
         
-        print_string(" |");
+        print_string("|");
         
         /* Print ASCII representation */
         for (j = 0; j < 8 && (i + j) < len; j++) {
@@ -239,7 +238,6 @@ void hex_dump(unsigned char *data, int len) {
             }
         }
         
-        print_string("|");
         print_newline();
     }
 }
@@ -345,23 +343,6 @@ void fn_get_ssid(void) {
         }
     }
     
-    /* Display protocol validation results */
-    print_string("Protocol valid: ");
-    print_decimal(protocol_valid);
-    print_newline();
-    
-    print_string("Checksum valid: ");
-    print_decimal(checksum_valid);
-    print_newline();
-    
-    print_string("Expected checksum: ");
-    print_hex_byte(expected_checksum);
-    print_newline();
-    
-    print_string("Received checksum: ");
-    print_hex_byte(received_checksum);
-    print_newline();
-    
     /* Display the received data */
     print_string("SSID Response (100 bytes):");
     print_newline();
@@ -370,6 +351,9 @@ void fn_get_ssid(void) {
     /* Display payload if valid */
     if (protocol_valid && checksum_valid) {
         print_string("Completed successfully");
+        print_newline();
+    } else {
+        print_string("Error in data.");
         print_newline();
     }
 }
@@ -419,23 +403,6 @@ void fn_get_hosts(void) {
             }
         }
     }
-    
-    /* Display protocol validation results */
-    print_string("Protocol valid: ");
-    print_decimal(protocol_valid);
-    print_newline();
-    
-    print_string("Checksum valid: ");
-    print_decimal(checksum_valid);
-    print_newline();
-    
-    print_string("Expected checksum: ");
-    print_hex_byte(expected_checksum);
-    print_newline();
-    
-    print_string("Received checksum: ");
-    print_hex_byte(received_checksum);
-    print_newline();
     
     /* Display hosts if valid */
     if (protocol_valid && checksum_valid) {
@@ -496,7 +463,7 @@ void fn_get_device_slots(void) {
     send_data(0xF2, 0x00, 0x00, 0x00, 0x00);
     
     /* Read GET_DEVICE_SLOTS_LEN bytes from RS423 buffer */
-    bytes_received = read_serial_data(device_response, GET_DEVICE_SLOTS_LEN);
+    bytes_received = read_serial_data(response, GET_DEVICE_SLOTS_LEN);
     
     /* Reset everything back to screen/keyboard */
     reset_serial_to_screen();
@@ -504,15 +471,15 @@ void fn_get_device_slots(void) {
     /* Validate protocol: ACK + Completed + 304 payload + checksum */
     if (bytes_received >= GET_DEVICE_SLOTS_LEN) {
         /* Check for ACK ('A') and Completed ('C') */
-        if (device_response[0] == 'A' && device_response[1] == 'C') {
+        if (response[0] == 'A' && response[1] == 'C') {
             protocol_valid = 1;
             
             /* Point to payload (bytes 2-305) */
-            payload_ptr = &device_response[2];
+            payload_ptr = &response[2];
             
             /* Calculate expected checksum for payload */
             expected_checksum = rs232_checksum(payload_ptr, GET_DEVICE_SLOTS_LEN - 3);
-            received_checksum = device_response[GET_DEVICE_SLOTS_LEN - 1];
+            received_checksum = response[GET_DEVICE_SLOTS_LEN - 1];
             
             /* Validate checksum */
             if (expected_checksum == received_checksum) {
