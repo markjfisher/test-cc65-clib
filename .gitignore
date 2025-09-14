@@ -16,3 +16,5 @@ SIMPLE
 
 # Build artifacts directory
 build/
+
+tests/*/test.json
