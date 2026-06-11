@@ -7,18 +7,13 @@
 .segment "CODE"
 
 _test_result:
-.res    4
+.res 2
 
 .code
 _test_func:
-  ; Disable cursor edit uses OSBYTE #$A8 to set interpretation arrows
-  ; OSBYTE stub handles this. Just verify both functions complete.
-  jsr     disable_cursor_edit
-  lda     #1
-  sta     _test_result + 0
+  jsr disable_cursor_edit
+  jsr restore_cursor_edit
 
-  jsr     restore_cursor_edit
-  lda     #1
-  sta     _test_result + 1
-
+  lda #1
+  sta _test_result + 0
   rts

@@ -15,6 +15,4 @@ _test_func:
 
   lda #1
   sta _test_result + 0
-  sta _test_result + 1
-
   rts

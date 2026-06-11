@@ -2,18 +2,11 @@
 ;
 ; This harness sets up a minimal BBC MOS environment for soft65c02_unit
 ; to test individual cc65 bbc library functions in isolation.
-;
-; Test patterns:
-;   1. Harness calls a test function (e.g. test_strlen) then hits brk.
-;   2. The soft65c02_unit DSL loads the compiled cc65 bbc library symbols,
-;      sets up memory/registers, runs until an end marker, then asserts state.
-;
-; The test binary and cc65 library .lbl file must be converted to .inc
-; before building the harness (run create_app_inc.sh).
 
         .export     halt
         .export     init_harness
         .export     end_init_harness
+        .export     brk_dispatch
 
         .import     _test_func
 
@@ -27,11 +20,23 @@ halt:
 
 .segment "CODE"
 init_harness:
-        ; Call the test function under test
         jsr     _test_func
 end_init_harness:
         brk
 
-; Reset vector points to halt
+; IRQ/BRK dispatch — reads BRKV ($0202) and jumps there
+; This allows the cc65 break handler to work via the standard IRQ vector
+brk_dispatch:
+        pha
+        lda     $0202
+        sta     $00
+        lda     $0203
+        sta     $01
+        pla
+        jmp     ($00)
+
+.segment "V_IRQ"
+        .word brk_dispatch
+
 .segment "V_RESET"
         .word halt

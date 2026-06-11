@@ -1,13 +1,17 @@
 .export _test_func
 .export _test_result
+.export _main
 
 .import _chline
 .import _cvline
 
 .segment "CODE"
 
+_main:
+  rts
+
 _test_result:
-.res 3
+.res 2
 
 .code
 _test_func:
@@ -19,7 +23,4 @@ _test_func:
 
   lda #1
   sta _test_result + 0
-  sta _test_result + 1
-  sta _test_result + 2
-
   rts
