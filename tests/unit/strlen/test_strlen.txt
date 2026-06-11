@@ -1,0 +1,16 @@
+////////////////////////////////
+marker $$ strlen test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
+assert CP = $end_init_harness $$completed correctly$$
+
+assert #0x1B83 = 0x00     $$strlen("") = 0$$
+assert #0x1B84 = 0x01     $$strlen("A") = 1$$
+assert #0x1B85 = 0x05     $$strlen("Hello") = 5$$
+assert #0x1B86 = 0x0A     $$strlen("1234567890") = 10$$
+assert #0x1B87 = 0x1B     $$strlen("A longer string with spaces") = 27$$

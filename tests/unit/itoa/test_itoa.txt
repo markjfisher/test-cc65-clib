@@ -1,0 +1,21 @@
+////////////////////////////////
+marker $$ itoa test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 10000)
+assert CP = $end_init_harness $$completed correctly$$
+
+assert #0x1B83 = 0x03     $$itoa(789) length = 3$$
+assert #0x1B84 = 0x37     $$itoa(789)[0] = '7'$$
+assert #0x1B85 = 0x39     $$itoa(789)[2] = '9'$$
+assert #0x1B86 = 0x01     $$itoa(0) length = 1$$
+assert #0x1B87 = 0x30     $$itoa(0)[0] = '0'$$
+assert #0x1B88 = 0x02     $$itoa(255,16) length = 2$$
+assert #0x1B89 = 0x46     $$itoa(255,16)[0] = 'F'$$
+assert #0x1B8A = 0x46     $$itoa(255,16)[1] = 'F'$$
+assert #0x1B8B = 0x2D     $$ltoa(-999)[0] = '-'$$
+assert #0x1B8C = 0x04     $$ltoa(-999) length = 4$$

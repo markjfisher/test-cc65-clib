@@ -1,0 +1,16 @@
+////////////////////////////////
+marker $$ clrscr test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
+assert CP = $end_init_harness $$completed correctly$$
+
+; wherex/wherey read VDU workspace ($300+) — zero-initialized in harness
+; clrscr uses _puts which pulls in BBC crt0, shifting _test_result from $1B83 to $1C39
+assert #0x1C39 = 0x00     $$wherex after clrscr (VDU workspace = 0)$$
+assert #0x1C3A = 0x00     $$wherey after clrscr (VDU workspace = 0)$$
+assert #0x1C3B = 0x01     $$screen operations completed$$

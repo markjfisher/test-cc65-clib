@@ -1,0 +1,12 @@
+////////////////////////////////
+marker $$ cputc test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
+assert CP = $end_init_harness $$completed correctly$$
+
+assert #0x1B83 = 0x01     $$cputc completed successfully$$

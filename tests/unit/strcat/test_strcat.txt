@@ -1,0 +1,19 @@
+////////////////////////////////
+marker $$ strcat test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
+assert CP = $end_init_harness $$completed correctly$$
+
+assert #0x1B83 = 0x0B     $$strlen("Hello World") = 11$$
+assert #0x1B84 = 0x48     $$buffer[0] = 'H'$$
+assert #0x1B85 = 0x57     $$buffer[6] = 'W'$$
+assert #0x1B86 = 0x05     $$strlen("Alone") = 5$$
+assert #0x1B87 = 0x41     $$buffer[0] = 'A'$$
+assert #0x1B88 = 0x03     $$strlen("ABC") = 3$$
+assert #0x1B89 = 0x43     $$buffer[2] = 'C'$$
+assert #0x1B8A = 0x00     $$null terminator present$$

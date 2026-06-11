@@ -1,0 +1,19 @@
+////////////////////////////////
+marker $$ strchr test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
+assert CP = $end_init_harness $$completed correctly$$
+
+assert #0x1B83 = 0x01     $$found 'W' in "Hello World"$$
+assert #0x1B84 = 0x01     $$found flag = 1$$
+assert #0x1B85 = 0x01     $$found 'H' (first char)$$
+assert #0x1B86 = 0x01     $$found 'd' (last char)$$
+assert #0x1B87 = 0x00     $$'z' not found$$
+assert #0x1B88 = 0x01     $$found space$$
+assert #0x1B89 = 0x01     $$found null terminator$$
+assert #0x1B8A = 0x00     $$null terminator value = 0$$

@@ -12,8 +12,6 @@ src_files:
   - ./src/mos_vectors.s
   - ./src/stubs.s
 
-ld_flags:
-
 # app.inc is created in the current folder by create_app_inc.sh
 asm_include_paths:
   - ./
