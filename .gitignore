@@ -1,8 +1,6 @@
 *.o
 $.*
 
-hello.*
-
 *.lib
 *.rom
 *.ssd
@@ -14,5 +12,12 @@ hello.*
 simple
 SIMPLE
 
-# Build artifacts directory
 build/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+*.egg-info/
