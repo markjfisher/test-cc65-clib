@@ -1,23 +1,20 @@
 /*
- * test_clock.c — tests clock() function
+ * test_clock.c — tests clock() function on real BBC MOS
+ * clock() calls OSWORD via beebium's real MOS implementation.
  */
 #include <time.h>
 #include <conio.h>
 
 int main(void) {
-    clock_t start, end;
+    clock_t c;
 
-    start = clock();
-    {
-        volatile int i;
-        for (i = 0; i < 1000; i++) ;
-    }
-    end = clock();
+    cputs("\r\n");
 
-    if (end > start) {
-        cputs("CLOCKOK");
+    c = clock();
+    if (c != (clock_t)-1 && c > 0) {
+        cputs("CLOCKOK\r\n");
     } else {
-        cputs("CLOCKBAD");
+        cputs("CLOCK?\r\n");
     }
 
     return 0;

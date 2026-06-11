@@ -1,48 +1,44 @@
 #!/bin/bash
 # Build DFS disc images for all integration test programs.
 # Output goes to build/integration-testing/discs/
+#
+# Environment:
+#   CC65_DIR       path to cc65 checkout (default: ../cc65)
+#   BEEBIUM_ROM_DIR  path to ROM files (default: ../beebium/build-release/roms)
+#
 # Run from project root: bash tests/integration/scripts/build_test_discs.sh
 
 set -euo pipefail
 
 SRC_DIR="tests/integration/discs"
 OUT_DIR="build/integration-testing/discs"
-CC65="../cc65/bin/cl65"
-DFSTOOL="$HOME/.cargo/bin/dfstool"
+CC65="${CC65_DIR:-$(cd .. && pwd)/cc65}/bin/cl65"
+DFSTOOL="$(command -v dfstool)"
 
 mkdir -p "$OUT_DIR"
 
-# Map test name -> 7-char DFS filenames
-declare -A SHORT
-SHORT[break]=TBREAK
-SHORT[clock]=TCLOCK
-SHORT[console]=TCONSL
-SHORT[fileio]=TFDISK
-SHORT[kbhit]=TKBHIT
-SHORT[screen]=TSCREN
+SHORT_NAMES="break:TBREAK clock:TCLOCK console:TCONSL fileio:TFDISK kbhit:TKBHIT screen:TSCREN"
 
-for c_file in "$SRC_DIR"/test_*.c; do
-    base=$(basename "$c_file" .c)
-    test_name="${base#test_}"
-    short="${SHORT[$test_name]}"
-    binary="$OUT_DIR/$short"
-    ssd="$OUT_DIR/$short.ssd"
-    json="$OUT_DIR/$short.json"
+for entry in $SHORT_NAMES; do
+  test_name="${entry%%:*}"
+  short="${entry##*:}"
+  c_file="$SRC_DIR/test_${test_name}.c"
+  binary="$OUT_DIR/$short"
+  ssd="$OUT_DIR/$short.ssd"
+  json="$OUT_DIR/$short.json"
 
-    echo "  $test_name -> $short"
+  echo "  $test_name -> $short"
 
-    compile_args=("-t" "bbc" "-o" "$binary" "$c_file")
-    if [ "$test_name" = "break" ]; then
-        compile_args+=("$SRC_DIR/brk_helper.s")
-    fi
+  compile_args=("-t" "bbc" "-o" "$binary" "$c_file")
+  if [ "$test_name" = "break" ]; then
+    compile_args+=("$SRC_DIR/brk_helper.s")
+  fi
 
-    "$CC65" "${compile_args[@]}" 2>/dev/null
+  "$CC65" "${compile_args[@]}" 2>/dev/null
 
-    real_binary=$(realpath "$binary")
-    real_json=$(realpath "$json")
-    abs_out_dir=$(realpath "$OUT_DIR")
+  real_binary=$(realpath "$binary")
 
-    cat > "$json" <<JSONEOF
+  cat > "$json" <<JSONEOF
 {
   "version": 1,
   "discTitle": "$short",
@@ -63,7 +59,7 @@ for c_file in "$SRC_DIR"/test_*.c; do
 }
 JSONEOF
 
-    "$DFSTOOL" make -o "$ssd" -f "$json"
+  "$DFSTOOL" make -o "$ssd" -f "$json"
 done
 
 echo "  Done. Output in $OUT_DIR"

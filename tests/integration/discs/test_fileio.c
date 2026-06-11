@@ -10,9 +10,11 @@ int main(void) {
     char buf[32];
     int n;
 
+    cputs("\r\n");
+
     fp = fopen("TSTFILE", "w");
     if (fp == NULL) {
-        cputs("FOPENFAIL");
+        cputs("FOPENFAIL\r\n");
         return 1;
     }
     fprintf(fp, "Hello World");
@@ -20,7 +22,7 @@ int main(void) {
 
     fp = fopen("TSTFILE", "r");
     if (fp == NULL) {
-        cputs("FOPENFAIL2");
+        cputs("FOPENFAIL2\r\n");
         return 1;
     }
     n = fread(buf, 1, sizeof(buf) - 1, fp);
@@ -28,9 +30,9 @@ int main(void) {
     fclose(fp);
 
     if (strcmp(buf, "Hello World") == 0) {
-        cputs("FILEOK");
+        cputs("FILEOK\r\n");
     } else {
-        cputs("FILEBAD");
+        cputs("FILEBAD\r\n");
     }
 
     return 0;

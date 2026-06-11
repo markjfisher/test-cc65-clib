@@ -3,33 +3,107 @@
 #
 # Usage: ./run_integration_tests.sh [pytest_args...]
 #
-# Requires: built beebium-server, MOS/BASIC ROMs, DFS ROM.
-# Uses the .venv in the project root (created by ./run_tests.sh or manually).
-# Skips gracefully if dependencies are not met.
+# Environment variables:
+#   BEEBIUM_SERVER     Path to beebium-model-b executable
+#                      (default: auto-detect from project checkout)
+#   BEEBIUM_ROM_DIR    Directory containing MOS, BASIC, and DFS ROMs
+#                      (default: auto-detect from beebium checkout)
+#   BEEBIUM_VENV       Path to Python venv with beebium installed
+#                      (default: .venv in project root)
+#
+# Required dependencies:
+#   - beebium-server (build from ../beebium)
+#   - MOS and BASIC ROMs (bundled with beebium build)
+#   - DFS ROM (acorn-dfs_2_26.rom, bundled with beebium build)
+#   - dfstool (install from https://github.com/rcook/dfstool)
+#   - cc65 (at ../cc65)
+#
+# Skips gracefully if dependencies not met, with a clear message.
 
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# Path to the project venv
-VENV_DIR=".venv"
+VENV_DIR="${BEEBIUM_VENV:-.venv}"
+BEEBIUM_ROM_DIR="${BEEBIUM_ROM_DIR:-}"
+BEEBIUM_SERVER="${BEEBIUM_SERVER:-}"
+CC65_DIR="${CC65_DIR:-$(cd .. && pwd)/cc65}"
+BUILD_DIR="build/integration-testing/discs"
 
-# Find the beebium-server
-BEEBIUM_SERVER="/home/markf/dev/bbc/beebium/build-release/src/server/beebium-model-b"
-if [ ! -x "$BEEBIUM_SERVER" ]; then
-  echo "    beebium-server not found at $BEEBIUM_SERVER -- skipping integration tests."
+# --- Discover beebium-server --------------------------------------------
+if [ -z "$BEEBIUM_SERVER" ] || [ ! -x "$BEEBIUM_SERVER" ]; then
+  candidates=(
+    "../beebium/build-release/src/server/beebium-model-b"
+    "../beebium/build/src/server/beebium-model-b"
+  )
+  for c in "${candidates[@]}"; do
+    resolved=$(realpath -q "$c" 2>/dev/null || true)
+    if [ -n "$resolved" ] && [ -x "$resolved" ]; then
+      BEEBIUM_SERVER="$resolved"
+      break
+    fi
+  done
+fi
+if [ -z "$BEEBIUM_SERVER" ] || [ ! -x "$BEEBIUM_SERVER" ]; then
+  echo "    beebium-server not found. Set BEEBIUM_SERVER or check ../beebium/build."
+  echo "    Skipping integration tests."
+  exit 0
+fi
+export BEEBIUM_SERVER
+
+# --- Discover ROM directory ---------------------------------------------
+if [ -z "$BEEBIUM_ROM_DIR" ]; then
+  server_dir=$(dirname "$BEEBIUM_SERVER")
+  rom_candidates=(
+    "$server_dir/../../roms"      # relative to build/src/server/
+    "$server_dir/../roms"         # build/src/ or similar
+    "../beebium/build-release/roms"
+    "../beebium/roms"
+  )
+  for c in "${rom_candidates[@]}"; do
+    resolved=$(realpath -q "$c" 2>/dev/null || true)
+    if [ -n "$resolved" ] && [ -d "$resolved" ] && [ -f "$resolved/acorn-mos_1_20.rom" ]; then
+      BEEBIUM_ROM_DIR="$resolved"
+      break
+    fi
+  done
+fi
+if [ -z "$BEEBIUM_ROM_DIR" ]; then
+  echo "    ROM directory not found. Set BEEBIUM_ROM_DIR."
+  echo "    Skipping integration tests."
+  exit 0
+fi
+export BEEBIUM_ROM_DIR
+
+# --- Check cc65 ---------------------------------------------------------
+CC65_CLI="$CC65_DIR/bin/cl65"
+CC65_DIR=$(cd "$CC65_DIR" && pwd)
+if [ ! -x "$CC65_CLI" ]; then
+  echo "    cc65 not found at $CC65_CLI. Set CC65_DIR."
+  echo "    Skipping integration tests."
   exit 0
 fi
 
-# Activate the venv
+# --- Check dfstool ------------------------------------------------------
+if ! command -v dfstool >/dev/null 2>&1; then
+  echo "    dfstool not found. Install from https://github.com/rcook/dfstool"
+  echo "    Skipping integration tests."
+  exit 0
+fi
+
+# --- Activate venv ------------------------------------------------------
 if [ -f "$VENV_DIR/bin/activate" ]; then
   . "$VENV_DIR/bin/activate"
 elif command -v uv >/dev/null 2>&1; then
-  # uv virtualenv support
   :
 else
-  echo "    no virtualenv found -- skipping integration tests."
+  echo "    no virtualenv found at $VENV_DIR"
+  echo "    Skipping integration tests."
   exit 0
 fi
 
-export BEEBIUM_SERVER
+# --- Build test discs ---------------------------------------------------
+echo "  Building test disc images..."
+bash tests/integration/scripts/build_test_discs.sh
+
+# --- Run tests ----------------------------------------------------------
 exec python3 -m pytest tests/integration/scripted/ -q "$@"

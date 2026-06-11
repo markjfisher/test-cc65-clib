@@ -9,15 +9,12 @@ $.*
 *.lst
 *.map
 
-simple
-SIMPLE
-
 build/
 
-# Python
+.venv/
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
-.venv/
 *.egg-info/
+.pytest_cache/

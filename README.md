@@ -1,91 +1,128 @@
-# BBC CLIB ROM Test Framework
+# Test-cc65-clib: Test Suite for cc65 BBC Micro Target
 
-This testing framework validates the **bbc-clib** ROM-based target for cc65, which provides tiny BBC Micro applications that call functions from a sideways ROM instead of static linking.
+This project tests the cc65 fork's BBC Micro target (`-t bbc`)
+at `/home/markf/dev/bbc/cc65`. It uses two emulator-based test tiers.
 
-## Architecture
+## Project Structure
 
 ```
 test-cc65-clib/
-├── build-rom/          # ROM building infrastructure
-│   └── Makefile        # Builds clib.rom from ../cc65-clib/
-├── roms/               # Generated ROM files  
-│   ├── clib.rom        # 8.6KB ROM image
-│   ├── clib.lib        # 492KB stub library
-│   └── clib.map        # Symbol addresses
-├── tests/              # Test programs
-│   ├── test-strings/   # String functions (strlen, strcpy)
-│   ├── test-maths/     # Math functions (abs, labs, itoa)
-│   └── ...
-└── build.sh           # Main build script
+├── run_tests.sh                  # Full test matrix entry point
+├── run_unit_tests.sh             # soft65c02 unit tests
+├── run_integration_tests.sh      # Beebium integration tests
+├── test_env.sh                   # Environment for unit tests
+├── AGENTS.md                     # Agent/developer instructions
+│
+├── tests/harness/                # soft65c02 unit test harness
+│   ├── harness.yaml              # soft65c02_unit config
+│   ├── cfg/harness.ld65.cfg      # Linker config
+│   ├── create_app_inc.sh         # .lbl -> .inc converter
+│   └── src/
+│       ├── crt0.s                # Entry: calls _test_func, hits brk
+│       ├── osbyte_stub.s         # OSBYTE dispatch + mocks
+│       ├── print_mock.s          # OSWRCH capture buffer
+│       ├── mos_vectors.s         # MOS vector table
+│       └── stubs.s               # Unimplemented vectors -> brk
+│
+├── tests/unit/                   # soft65c02 unit tests
+│   ├── strlen/                   # One directory per function
+│   │   ├── test_strlen.s
+│   │   ├── test_strlen.yaml
+│   │   └── test_strlen.txt
+│   ├── abs/
+│   ├── break_handler/
+│   └── ... ~50 test dirs
+│
+├── tests/integration/            # Beebium integration tests
+│   ├── pyproject.toml            # Python deps (beebium, pytest)
+│   ├── conftest.py               # Pytest config
+│   ├── discs/                    # C test program sources (NOT build artifacts)
+│   │   ├── hello.c
+│   │   ├── test_console.c
+│   │   ├── test_fileio.c
+│   │   ├── test_clock.c
+│   │   ├── test_break.c
+│   │   ├── test_screen.c
+│   │   ├── test_kbhit.c
+│   │   └── brk_helper.s
+│   ├── scripted/                 # Pytest test files
+│   │   └── test_basic.py
+│   └── scripts/                  # Build scripts
+│       └── build_test_discs.sh
+│
+└── build/                        # Build artifacts (all generated)
+    └── integration-testing/discs/
+        ├── TCONSL.ssd
+        ├── TBREAK.ssd
+        └── ... (generated, not committed)
 ```
 
-## Quick Start
+## Test Architecture
 
-### Build Everything
-```bash
-./build.sh              # Builds ROM + all tests
-```
+### Tier 1: soft65c02 unit tests (fast, isolated)
 
-### Build Individual Components  
-```bash
-./build.sh rom          # Build ROM only
-./build.sh tests        # Build all tests only
-./build.sh clean        # Clean everything
-```
+Tests individual cc65 library functions in a pure 6502 emulator. No BBC hardware.
 
-### Build Individual Test
-```bash
-cd tests/test-basic
-make all               # Build single test
-```
+- **Tool**: `soft65c02_unit` (Rust, at ~/.cargo/bin/)
+- **Pattern**: Assembly `.s` file calls library functions, stores results.
+  YAML config + DSL `.txt` script drives the emulator.
+- **Run**: `./run_unit_tests.sh` — discovers all `tests/unit/*/test_*.yaml`
+- **Add**: Create a new directory under `tests/unit/`. See `AGENTS.md` for details.
 
-## Test Programs
+### Tier 2: Beebium integration tests (full BBC emulation)
 
-### test-basic
-Tests core functions available in ROM:
-- `abs(-42)` → `42`
-- `atoi("123")` → `123`
-- Basic arithmetic
+End-to-end tests using the beebium BBC Model B emulator with gRPC control.
 
-### test-strings  
-Tests string manipulation in ROM:
-- `strlen("Hello")` → `5`
-- `strcpy()`, `strcat()`, `strcmp()`
-- `strchr()` character search
-
-### test-math
-Tests mathematical functions in ROM:
-- `abs()`, `labs()` for absolute values
-- `atoi()`, `atol()` string to number conversion
-- `itoa()`, `ltoa()` number to string conversion
-
-### test-rom-detection
-Tests ROM detection mechanism:
-- Verifies `clib_rom_available` flag
-- Tests `detect_clib_rom()` function
-- Validates ROM startup process
+- **Tool**: `beebium-model-b` + Python `beebium` client
+- **Pattern**: C programs compiled with `cc65 -t bbc`, loaded from DFS disc.
+  Pytest scripts type commands, read screen output, assert results.
+- **Run**: `./run_integration_tests.sh`
+- **Add**: Write a `.c` test program in `tests/integration/discs/`, a corresponding
+  pytest in `tests/integration/scripted/`, and add it to `build_test_discs.sh`.
 
 ## Running Tests
 
-1. **Build ROM and tests**: `./build.sh`
-2. **Load ROM**: Install `roms/clib.rom` in BBC emulator sideways slot 1  
-3. **Run test**: Load any `test` executable and run it
+### Full matrix (recommended)
 
-## Size Comparison
+```bash
+./run_tests.sh              # all tiers
+./run_tests.sh --no-beebium # skip integration if beebium not set up
+```
 
-**Traditional `bbc` target:**
-- Application + ~8-15KB static library = Large executable
+### Unit tests only
 
-**ROM `bbc-clib` target:**  
-- Application + ~200-500 bytes stubs = **90% smaller!**
-- Requires `clib.rom` to be present
+```bash
+./run_unit_tests.sh                  # all
+./run_unit_tests.sh strlen           # specific test
+```
 
-## Technical Details
+### Integration tests only
 
-- **ROM Functions**: 108+ C library functions (strlen, strcpy, memcpy, abs, atoi, etc.)
-- **ROM Size**: 8.6KB (fits in single sideways ROM slot)
-- **Stub Size**: ~200-500 bytes per application (vs 8-15KB static linking)
-- **Detection**: Automatic ROM detection at startup with error handling
-- **Compatibility**: Works alongside traditional `bbc` target
+```bash
+./run_integration_tests.sh                    # all
+BEEBIUM_SERVER=... ./run_integration_tests.sh # with custom server
+```
 
-This framework provides comprehensive testing for the revolutionary ROM-based BBC Micro development approach!
+The integration test runner auto-discovers dependencies from the sibling
+`../beebium` checkout. Set these env vars to override:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `BEEBIUM_SERVER` | Path to `beebium-model-b` | `../beebium/build-release/...` |
+| `BEEBIUM_ROM_DIR` | ROM files directory | `../beebium/build-release/roms` |
+| `CC65_DIR` | cc65 checkout directory | `../cc65` |
+
+### Requirements
+
+- **cc65 bbc library**: Rebuilt by `run_tests.sh` step 1
+- **soft65c02_unit**: Install Rust version from project repo
+- **beebium**: Build from sibling checkout `../beebium`
+- **dfstool**: Install from https://github.com/rcook/dfstool
+- **Python**: venv at `.venv/` with `beebium` and `pytest` installed
+
+## Converting Legacy Tests
+
+The original `tests/test-*` directories were b2-based visual tests (no automation).
+They should NOT be used. New tests should be added as:
+- soft65c02 unit tests in `tests/unit/` for individual library functions
+- Beebium integration tests in `tests/integration/` for full programs

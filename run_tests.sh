@@ -17,25 +17,20 @@ for arg in "$@"; do
 done
 
 echo "############################################################"
-echo "# 1/4  Build cc65 bbc library"
+echo "# 1/3  Build cc65 bbc library"
 echo "############################################################"
 make -C build-rom rebuild-cc65-lib
 
 echo
 echo "############################################################"
-echo "# 2/4  Build test applications (legacy b2 target)"
-echo "############################################################"
-./build.sh -a
-
-echo
-echo "############################################################"
-echo "# 3/4  Unit tests (soft65c02)"
+echo "# 2/3  Unit tests (soft65c02)"
 echo "############################################################"
 ./run_unit_tests.sh
 
 if [ "$RUN_BEEBIUM" = "1" ]; then
   echo
-  echo "# 4/4  Beebium integration tests"
+  echo "############################################################"
+  echo "# 3/3  Beebium integration tests"
   echo "############################################################"
   ./run_integration_tests.sh
 else

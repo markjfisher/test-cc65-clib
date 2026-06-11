@@ -1,17 +1,16 @@
 /*
  * test_kbhit.c — tests kbhit and cgetc on the BBC
- * Must be run on real hardware — beebium can inject keypresses
+ * beebium injects a keypress after the program starts
  */
 #include <conio.h>
 
 int main(void) {
-    cputs("PRESS A");
-    /* Wait for a key */
-    {
-        unsigned char ch;
-        ch = cgetc();
-        cputc(ch);
-        cputs(" OK");
-    }
+    unsigned char ch;
+
+    cputs("\r\nPRESS A\r\n");
+    ch = cgetc();
+    cputc(ch);
+    cputs(" OK\r\n");
+
     return 0;
 }
