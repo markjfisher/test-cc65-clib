@@ -29,7 +29,12 @@ for entry in $SHORT_NAMES; do
 
   echo "  $test_name -> $short"
 
-  compile_args=("-t" "bbc" "-o" "$binary" "$c_file")
+  # Link at $1900 (PAGE when DFS is present). The cc65 bbc target defaults to
+  # STARTADDRESS $0E00, which collides with Acorn DFS private workspace
+  # ($0E00-$18FF). A program loaded+run there from a DFS disc corrupts (and is
+  # corrupted by) DFS, so its OSWRCH output never reaches the screen. Linking at
+  # $1900 (the DFS PAGE) avoids the conflict.
+  compile_args=("-t" "bbc" "--start-addr" "0x1900" "-o" "$binary" "$c_file")
   if [ "$test_name" = "break" ]; then
     compile_args+=("$SRC_DIR/brk_helper.s")
   fi
@@ -50,8 +55,8 @@ for entry in $SHORT_NAMES; do
       "fileName": "$short",
       "directory": "\$",
       "locked": false,
-      "loadAddress": "&000E00",
-      "executionAddress": "&000E00",
+      "loadAddress": "&001900",
+      "executionAddress": "&001900",
       "contentPath": "$real_binary",
       "type": "other"
     }

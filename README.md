@@ -78,7 +78,16 @@ End-to-end tests using the beebium BBC Model B emulator with gRPC control.
   Pytest scripts type commands, read screen output, assert results.
 - **Run**: `./run_integration_tests.sh`
 - **Add**: Write a `.c` test program in `tests/integration/discs/`, a corresponding
-  pytest in `tests/integration/scripted/`, and add it to `build_test_discs.sh`.
+  pytest in `tests/integration/scripted/` (use the `clib_harness` module), and add
+  it to `build_test_discs.sh`.
+- **Important**: test programs are linked at `$1900` (cc65 `--start-addr 0x1900`),
+  not the cc65 bbc default of `$0E00`. `$0E00` collides with Acorn DFS private
+  workspace, so a program *RUN from a DFS disc there silently corrupts DFS and
+  produces no screen output. `build_test_discs.sh` handles this; the disc
+  catalogue load/exec addresses must match (`&001900`).
+- The harness runs the emulator at unlimited speed (`set_speed_multiplier(0.0)`)
+  so disc I/O completes quickly, and reads the scroll-corrected MODE 7 screen via
+  `beebium.screen` (which already accounts for 6845 hardware scrolling).
 
 ## Running Tests
 

@@ -1,23 +1,31 @@
 /*
- * test_console.c — tests console I/O functions
- * Uses only core output functions that work on real BBC MOS:
- * cputc, cputs, gotoxy, textcolor — all via OSWRCH.
+ * test_console.c - tests console output functions on the real BBC MOS.
+ *
+ * Exercises cputc, cputs, gotoxy and textcolor, all of which reach the screen
+ * via OSWRCH. clrscr() first so the only thing on screen is this program's
+ * output (the *RUN command echo is wiped), which keeps the screen assertions
+ * unambiguous.
+ *
+ * Expected screen layout (MODE 7):
+ *   row 0:  ABC
+ *   row 5:  POSITION   (placed by gotoxy(0, 5))
+ *   row 6:  COLOUROK   (after textcolor(1))
  */
 #include <conio.h>
 
 int main(void) {
-    cputs("\r\n");
+    clrscr();
 
     cputc('A');
     cputc('B');
     cputc('C');
-    cputs("\r\n");
 
     gotoxy(0, 5);
-    cputs("POSITION\r\n");
+    cputs("POSITION");
 
     textcolor(1);
-    cputs("COLOROK\r\n");
+    gotoxy(0, 6);
+    cputs("COLOUROK\r\n");
 
     return 0;
 }

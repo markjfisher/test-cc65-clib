@@ -1,5 +1,17 @@
 /*
- * test_fileio.c — tests file I/O: fopen, fprintf, fclose, fread
+ * test_fileio.c - tests stdio file I/O (fopen/fwrite/fclose/fread) on real DFS.
+ *
+ * Writes a short string to a DFS file, reads it back, and compares.
+ *
+ * Expected screen output:
+ *   FILEOK     on a successful write/read round-trip
+ *   FILEBAD    if the data read back does not match
+ *   OPEN1FAIL / OPEN2FAIL on open failures
+ *
+ * KNOWN ISSUE: on the current cc65 bbc target this hangs at the first OSBGET/
+ * OSBPUT. BASIC disc I/O (OPENOUT/PRINT#/BGET#) works in the same emulated
+ * setup, so the fault is in the cc65 bbc read()/write() path, not DFS. The
+ * integration test for this is marked xfail until the library is fixed.
  */
 #include <stdio.h>
 #include <string.h>
@@ -10,19 +22,19 @@ int main(void) {
     char buf[32];
     int n;
 
-    cputs("\r\n");
+    clrscr();
 
     fp = fopen("TSTFILE", "w");
     if (fp == NULL) {
-        cputs("FOPENFAIL\r\n");
+        cputs("OPEN1FAIL\r\n");
         return 1;
     }
-    fprintf(fp, "Hello World");
+    fwrite("Hello World", 1, 11, fp);
     fclose(fp);
 
     fp = fopen("TSTFILE", "r");
     if (fp == NULL) {
-        cputs("FOPENFAIL2\r\n");
+        cputs("OPEN2FAIL\r\n");
         return 1;
     }
     n = fread(buf, 1, sizeof(buf) - 1, fp);
