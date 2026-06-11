@@ -1,0 +1,17 @@
+/////////////////////////////////
+marker $$ harness smoke test $$
+/////////////////////////////////
+
+; load the built harness binary
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+
+; clean start
+registers flush
+
+; Run the harness init, which calls test_func and stores 42 to test_result
+run $init_harness until (CP = $end_init_harness OR cycle_count > 500)
+assert CP = $end_init_harness $$completed correctly$$
+
+; Verify test_func stored 42 (0x2A) into test_result
+assert $test_result = 0x2A                              $$test_func returned 42$$

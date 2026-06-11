@@ -1,0 +1,9 @@
+name: harness smoke test — verify soft65c02_unit infrastructure works
+
+configs:
+  - ${HARNESS_DIR}/harness.yaml
+
+src_files:
+  - test_func.s
+
+test_script: test_harness_works.txt
