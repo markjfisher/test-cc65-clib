@@ -1,0 +1,12 @@
+////////////////////////////////
+marker $$ printhex test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 500)
+assert CP = $end_init_harness $$completed correctly$$
+
+assert $_test_result = 0x01     $$printhex completed$$

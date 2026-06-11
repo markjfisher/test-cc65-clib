@@ -9,11 +9,11 @@ registers flush
 run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
 assert CP = $end_init_harness $$completed correctly$$
 
-assert #0x1B83 = 0x0B     $$strlen("Hello World") = 11$$
-assert #0x1B84 = 0x48     $$buffer[0] = 'H'$$
-assert #0x1B85 = 0x57     $$buffer[6] = 'W'$$
-assert #0x1B86 = 0x05     $$strlen("Alone") = 5$$
-assert #0x1B87 = 0x41     $$buffer[0] = 'A'$$
-assert #0x1B88 = 0x03     $$strlen("ABC") = 3$$
-assert #0x1B89 = 0x43     $$buffer[2] = 'C'$$
-assert #0x1B8A = 0x00     $$null terminator present$$
+assert $_test_result = 0x0B     $$strlen("Hello World") = 11$$
+assert $_test_result + 1 = 0x48     $$buffer[0] = 'H'$$
+assert $_test_result + 2 = 0x57     $$buffer[6] = 'W'$$
+assert $_test_result + 3 = 0x05     $$strlen("Alone") = 5$$
+assert $_test_result + 4 = 0x41     $$buffer[0] = 'A'$$
+assert $_test_result + 5 = 0x03     $$strlen("ABC") = 3$$
+assert $_test_result + 6 = 0x43     $$buffer[2] = 'C'$$
+assert $_test_result + 7 = 0x00     $$null terminator present$$

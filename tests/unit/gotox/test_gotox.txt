@@ -1,0 +1,16 @@
+////////////////////////////////
+marker $$ gotox/gotoy test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
+assert CP = $end_init_harness $$completed correctly$$
+
+; gotox(10) sends VDU 31,10,<current_y>, gotoy(5) sends VDU 31,<current_x>,5
+; All via OSWRCH which is implemented in harness
+assert $_test_result = 0x01     $$gotox(10) completed$$
+assert $_test_result + 1 = 0x01     $$gotoy(5) completed$$
+assert $_test_result + 2 = 0x01     $$both operations completed$$

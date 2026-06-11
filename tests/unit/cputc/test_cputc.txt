@@ -9,4 +9,4 @@ registers flush
 run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
 assert CP = $end_init_harness $$completed correctly$$
 
-assert #0x1B83 = 0x01     $$cputc completed successfully$$
+assert $_test_result = 0x01     $$cputc completed successfully$$

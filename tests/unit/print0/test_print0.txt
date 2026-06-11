@@ -1,0 +1,13 @@
+////////////////////////////////
+marker $$ print0 test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
+assert CP = $end_init_harness $$completed correctly$$
+
+; print0 outputs "Hello print0!" via OSASCI -> OSWRCH
+assert $_test_result = 0x01     $$print0 completed$$

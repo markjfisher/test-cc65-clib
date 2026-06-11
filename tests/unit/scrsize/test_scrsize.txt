@@ -1,0 +1,17 @@
+////////////////////////////////
+marker $$ scrsize test $$
+////////////////////////////////
+
+memory load atari "${BINARY_PATH}"
+symbols load "${SYMBOLS_PATH}"
+registers flush
+
+run $init_harness until (CP = $end_init_harness OR cycle_count > 5000)
+assert CP = $end_init_harness $$completed correctly$$
+
+; screensize reads VDU workspace at $300+
+; VDU_WKSP: TEXT_WINDOW_BL at $308 (2 bytes), TEXT_WINDOW_TR at $30A (2 bytes)
+; All zero in harness -> X = (0-0)+1 = 1, Y = (0-0)+1 = 1
+assert $_test_result = 0x01     $$screensize X (columns) = 1 (uninit VDU workspace)$$
+assert $_test_result + 1 = 0x01     $$screensize Y (rows) = 1$$
+assert $_test_result + 2 = 0x01     $$scrsize completed$$

@@ -30,6 +30,9 @@ osbyte_noop:
 osbyte_01:
         rts
 
+osbyte_04:
+        rts
+
 ; OSBYTE 236 — character destination (print_char); return screen in X.
 osbyte_ec:
         ldx     #$00
@@ -71,6 +74,8 @@ osbyte_table_lo:
         .byte   .lobyte(osbyte_noop - 1)
         .elseif cmd = $03
         .byte   .lobyte(osbyte_noop - 1)
+        .elseif cmd = $04
+        .byte   .lobyte(osbyte_04 - 1)
         .elseif cmd = $07
         .byte   .lobyte(osbyte_noop - 1)
         .elseif cmd = $08
@@ -110,6 +115,8 @@ osbyte_table_hi:
         .byte   .hibyte(osbyte_noop - 1)
         .elseif cmd = $03
         .byte   .hibyte(osbyte_noop - 1)
+        .elseif cmd = $04
+        .byte   .hibyte(osbyte_04 - 1)
         .elseif cmd = $07
         .byte   .hibyte(osbyte_noop - 1)
         .elseif cmd = $08
