@@ -33,8 +33,9 @@ int read_rs423_char(unsigned char *ch);
 #define osbyte_READ_ADC               0x80
 #define osbyte_REMOVE_CHAR            0x91
 
-/* Baud rate 7 = 9600 baud */
+/* Baud rates */
 #define BAUD_9600                     7
+#define BAUD_19200                    8
 
 /* Output stream values */
 #define OUTPUT_SCREEN_ONLY            0
@@ -153,10 +154,10 @@ void print_decimal(int value) {
 /* Serial port configuration functions */
 void setup_serial_ports(void) {
     /* *fx 7,7 - Set RX to 9600 baud */
-    osbyte(osbyte_SERIAL_RECEIVE_RATE, BAUD_9600, 0);
+    osbyte(osbyte_SERIAL_RECEIVE_RATE, BAUD_19200, 0);
     
     /* *fx 8,7 - Set TX to 9600 baud */
-    osbyte(osbyte_SERIAL_TRANSMIT_RATE, BAUD_9600, 0);
+    osbyte(osbyte_SERIAL_TRANSMIT_RATE, BAUD_19200, 0);
     
     /* *fx 3,3 - Output data to serial port (not screen) */
     osbyte(osbyte_OUTPUT_STREAMS, OUTPUT_SERIAL_ONLY, 0);

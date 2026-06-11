@@ -39,6 +39,30 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Function to extract filename from first line of BAS file
+# Looks for: REM filename: DESIRED_NAME
+extract_filename_from_bas() {
+    local bas_file="$1"
+    local default_name="$2"
+    
+    # Read first line of the file
+    local first_line=$(head -n 1 "$bas_file" 2>/dev/null)
+    
+    # Check if first line contains "filename:" pattern
+    if echo "$first_line" | grep -qi "filename:"; then
+        # Extract the filename after "filename:"
+        local extracted_name=$(echo "$first_line" | sed -n 's/.*[Ff][Ii][Ll][Ee][Nn][Aa][Mm][Ee]:[[:space:]]*\([^[:space:]]*\).*/\1/p')
+        
+        if [ -n "$extracted_name" ]; then
+            echo "$extracted_name"
+            return 0
+        fi
+    fi
+    
+    # Fall back to default name
+    echo "$default_name"
+}
+
 # Find all .bas files in input folder
 BAS_FILES=($(find "$INPUT_FOLDER" -name "*.bas" -type f))
 
@@ -58,18 +82,21 @@ echo "Tokenizing BAS files..."
 TOKENIZED_FILES=()
 TOKENIZED_NAMES=()
 for bas_file in "${BAS_FILES[@]}"; do
-    # Get base filename without extension
+    # Get base filename without extension as fallback
     base_filename=$(basename "$bas_file" .bas)
+    
+    # Try to extract filename from first line of BAS file
+    extracted_name=$(extract_filename_from_bas "$bas_file" "$base_filename")
     
     # Convert to uppercase and ensure it fits 8.3 format
     # BBC Micro filenames are max 7 chars + .BAS (8.3 total)
-    if [ ${#base_filename} -gt 7 ]; then
-        base_filename="${base_filename:0:7}"
-        echo "  Warning: Filename truncated to fit 8.3 format: $base_filename"
+    if [ ${#extracted_name} -gt 7 ]; then
+        extracted_name="${extracted_name:0:7}"
+        echo "  Warning: Filename truncated to fit 8.3 format: $extracted_name"
     fi
     
     # Create uppercase filename with .BAS extension
-    filename="${base_filename^^}"
+    filename="${extracted_name^^}"
     tokenized_file="$TEMP_DIR/$filename"
     
     echo "  Tokenizing: $(basename "$bas_file") -> $filename"
