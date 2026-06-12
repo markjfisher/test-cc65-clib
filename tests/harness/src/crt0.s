@@ -9,6 +9,7 @@
         .export     brk_dispatch
 
         .import     _test_func
+        .importzp   c_sp
 
 .ifdef APP_INC_PRESENT
         .include    "app.inc"
@@ -20,6 +21,17 @@ halt:
 
 .segment "CODE"
 init_harness:
+        ; Initialise the cc65 C parameter stack. Pure-asm tests get away with
+        ; an uninitialised c_sp (their frames are tiny), but C library code with
+        ; real locals (e.g. open()'s char filename[128]) would otherwise grow
+        ; the stack down from $0000 and wrap into the MOS vector area at $FFB9+,
+        ; corrupting OSFIND/OSBGET and hanging the test. Anchor it below the
+        ; sideways ROM / I/O space at $8000.
+        lda     #$00
+        sta     c_sp
+        lda     #$80
+        sta     c_sp+1
+
         jsr     _test_func
 end_init_harness:
         brk

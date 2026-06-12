@@ -1,0 +1,25 @@
+"""Integration test: OSFILE wrappers (osfile_save / osfile_read / osfile_delete).
+
+Runs discs/test_osfile.c (built as TOSFIL): saves a file, reads its catalogue
+info back (type=file, size=5), deletes it, and confirms a subsequent read
+reports "not found". Exercises OS_File against real DFS.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+import clib_harness as h
+
+
+@h.requires_disc("TOSFIL")
+def test_osfile_save_read_delete():
+    with h.launch("TOSFIL") as bbc:
+        h.boot(bbc)
+        h.run_disc_program(bbc, "TOSFIL", settle=4.0)
+
+        h.assert_screen(bbc, "SAVEOK")
+        h.assert_screen(bbc, "READOK")
+        h.assert_screen(bbc, "DELOK")
+        h.assert_not_screen(bbc, "READBAD")
+        h.assert_not_screen(bbc, "DELBAD")

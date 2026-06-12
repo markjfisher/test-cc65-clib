@@ -17,7 +17,7 @@ DFSTOOL="$(command -v dfstool)"
 
 mkdir -p "$OUT_DIR"
 
-SHORT_NAMES="break:TBREAK clock:TCLOCK console:TCONSL fileio:TFDISK kbhit:TKBHIT screen:TSCREN"
+SHORT_NAMES="break:TBREAK clock:TCLOCK console:TCONSL fileio:TFDISK kbhit:TKBHIT screen:TSCREN osfile:TOSFIL"
 
 for entry in $SHORT_NAMES; do
   test_name="${entry%%:*}"
@@ -66,5 +66,38 @@ JSONEOF
 
   "$DFSTOOL" make -o "$ssd" -f "$json"
 done
+
+# ---------------------------------------------------------------------------
+# Directory-listing test (TDIR): needs extra catalogue entries to list.
+# ---------------------------------------------------------------------------
+echo "  dir -> TDIR"
+dir_bin="$OUT_DIR/TDIR"
+"$CC65" -t bbc --start-addr 0x1900 -o "$dir_bin" "$SRC_DIR/test_dir.c" 2>/dev/null
+real_dir_bin=$(realpath "$dir_bin")
+printf 'alpha-data' > "$OUT_DIR/ALPHA.dat"
+printf 'beta-data'  > "$OUT_DIR/BETA.dat"
+alpha_path=$(realpath "$OUT_DIR/ALPHA.dat")
+beta_path=$(realpath "$OUT_DIR/BETA.dat")
+cat > "$OUT_DIR/TDIR.json" <<JSONEOF
+{
+  "version": 1,
+  "discTitle": "TDIR",
+  "discSize": 800,
+  "bootOption": "none",
+  "cycleNumber": 0,
+  "files": [
+    { "fileName": "TDIR", "directory": "\$", "locked": false,
+      "loadAddress": "&001900", "executionAddress": "&001900",
+      "contentPath": "$real_dir_bin", "type": "other" },
+    { "fileName": "ALPHA", "directory": "\$", "locked": false,
+      "loadAddress": "&000000", "executionAddress": "&000000",
+      "contentPath": "$alpha_path", "type": "other" },
+    { "fileName": "BETA", "directory": "\$", "locked": false,
+      "loadAddress": "&000000", "executionAddress": "&000000",
+      "contentPath": "$beta_path", "type": "other" }
+  ]
+}
+JSONEOF
+"$DFSTOOL" make -o "$OUT_DIR/TDIR.ssd" -f "$OUT_DIR/TDIR.json"
 
 echo "  Done. Output in $OUT_DIR"

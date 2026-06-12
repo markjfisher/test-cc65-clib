@@ -11,6 +11,7 @@ src_files:
   - ./src/print_mock.s
   - ./src/mos_vectors.s
   - ./src/stubs.s
+  - ./src/file_mock.s
 
 # app.inc is created in the current folder by create_app_inc.sh
 asm_include_paths:

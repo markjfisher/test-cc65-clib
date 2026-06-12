@@ -21,6 +21,9 @@
 
         .export  osbyte_80
         .export  osbyte_91
+        .export  osbyte_7f
+
+        .import  file_mock_eof_status
 
         .segment "CODE"
 
@@ -84,6 +87,8 @@ osbyte_table_lo:
         .byte   .lobyte(osbyte_noop - 1)
         .elseif cmd = $76
         .byte   .lobyte(osbyte_76 - 1)
+        .elseif cmd = $7f
+        .byte   .lobyte(osbyte_7f - 1)
         .elseif cmd = $83
         .byte   .lobyte(osbyte_83 - 1)
         .elseif cmd = $84
@@ -125,6 +130,8 @@ osbyte_table_hi:
         .byte   .hibyte(osbyte_noop - 1)
         .elseif cmd = $76
         .byte   .hibyte(osbyte_76 - 1)
+        .elseif cmd = $7f
+        .byte   .hibyte(osbyte_7f - 1)
         .elseif cmd = $83
         .byte   .hibyte(osbyte_83 - 1)
         .elseif cmd = $84
@@ -167,6 +174,11 @@ osbyte_91:
 @no_char:
         sec
         rts
+
+; OSBYTE $7F — read EOF status. X = handle on entry; return X = $FF at EOF
+; else 0. Delegates to the file mock so it tracks the same file state.
+osbyte_7f:
+        jmp     file_mock_eof_status
 
 ; OSBYTE $83 — OSHWM (top of user memory); YX = address.
 osbyte_83:

@@ -9,6 +9,10 @@
 .import h_oswrch_entry
 .import h_unknown_entry
 .import h_osrdch_entry
+.import h_osfind_entry
+.import h_osbget_entry
+.import h_osbput_entry
+.import h_osargs_entry
 
 osrdrm_vector:  jmp h_unknown_entry
                 jmp h_unknown_entry
@@ -17,11 +21,11 @@ gsinit_vector:  jmp h_unknown_entry
 gsread_vector:  jmp h_unknown_entry
 nvwrch_vector:  jmp h_unknown_entry
 nvrdch_vector:  jmp h_unknown_entry
-osfind_vector:  jmp h_unknown_entry
+osfind_vector:  jmp h_osfind_entry
 osgbpb_vector:  jmp h_unknown_entry
-osbput_vector:  jmp h_unknown_entry
-osbget_vector:  jmp h_unknown_entry
-osargs_vector:  jmp h_unknown_entry
+osbput_vector:  jmp h_osbput_entry
+osbget_vector:  jmp h_osbget_entry
+osargs_vector:  jmp h_osargs_entry
 osfile_vector:  jmp h_unknown_entry
 osrdch_vector:  jmp h_osrdch_entry
 osasci_vector:  cmp #$0d
