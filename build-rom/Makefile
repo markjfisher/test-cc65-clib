@@ -15,7 +15,10 @@ TARGET_ROM_COPY = $(HOME)/dev/bbc/roms
 
 all: rebuild-clib
 
-rebuild-clib: rebuild-cc65-lib rebuild-clib-rom
+# Order matters: the cc65 bbc-clib library links against the generated
+# clib_stubs.s / inc_objs.mk, so the ROM + metadata must be (re)generated and
+# copied into cc65 *before* the cc65 libraries are built.
+rebuild-clib: rebuild-clib-rom rebuild-cc65-lib
 
 rebuild-clib-rom:
 	@echo "Cleaning and rebuilding cc65-clib ROM..."
