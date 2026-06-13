@@ -115,27 +115,32 @@ test-cc65-clib/
 │   │   └── <test-name>/
 │   │       ├── test_<name>.yaml  # Test config
 │   │       ├── test_<name>.txt   # Test DSL script
-│   │       └── test_<name>.s     # Assembly test source
-│   └── integration/              # Beebium integration tests
-│       ├── pyproject.toml
-│       ├── conftest.py
-│       └── scripted/
-│           └── test_*.py
-├── tests/                        # Legacy b2-based tests
-│   ├── test-break-handler/
-│   ├── test-c-comprehensive/
-│   ├── test-files/
-│   ├── test-maths/
-│   ├── test-serial/
-│   └── test-strings/
-└── build.sh                      # Legacy build script
+│   │       └── test_<name>.s     # Assembly test source (or test_<name>.c)
+│   ├── integration/              # Beebium integration tests (bbc + bbc-clib)
+│   │   ├── pyproject.toml
+│   │   ├── conftest.py
+│   │   ├── discs/                # C sources for the disc test programs
+│   │   ├── scripts/              # build_test_discs.sh (uses create_ssd.py)
+│   │   └── scripted/
+│   │       ├── clib_harness.py   # shared, mode-aware harness
+│   │       ├── conftest.py       # `mode` fixture: bbc / bbc-clib
+│   │       └── test_*.py
+│   └── manual/                   # Non-automated / hardware-dependent tests
+│       ├── README.md
+│       └── serial-fujinet/       # FujiNet RS423 app (needs hardware)
+└── build.sh                      # Legacy build script (see Phase 4 rework)
 ```
 
 ## Legacy Tests
 
-The tests in `tests/test-*` are the original b2-based visual tests. They are
-not automated. New tests should be added to `tests/unit/` or
-`tests/integration/` using the soft65c02 or beebium frameworks.
+The original interactive/visual `bbc-clib` test programs (`test-maths`,
+`test-strings`, `test-files`, `test-c-comprehensive`, `test-break-handler`)
+have been retired now that the automated unit (`tests/unit/`) and beebium
+integration (`tests/integration/`) suites cover their behaviour deterministically
+in both `bbc` and `bbc-clib` modes. The FujiNet serial application was moved to
+`tests/manual/serial-fujinet/`. See `tests/manual/README.md` for the mapping and
+the few intentionally-unautomated paths. New tests go in `tests/unit/` or
+`tests/integration/`.
 
 ## Test Plan (from initial review)
 
