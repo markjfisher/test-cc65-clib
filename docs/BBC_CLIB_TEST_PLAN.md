@@ -289,6 +289,27 @@ Notes for later:
   absent) agree it is ROM-resident. Worth a generator tidy-up later, not
   functionally blocking.
 
+### Phase 2 (dual-mode integration harness) — DONE
+- `build_test_discs.sh` now builds every program for BOTH targets into
+  `build/integration-testing/discs/{bbc,bbc-clib}/` (same DFS filenames; mode in
+  the directory). `MODES` env can restrict to one target.
+- `clib_harness.py` is mode-aware: `disc_path(short, mode)`, per-mode skip via
+  `ensure_ready`, and `launch(short, mode, with_clib_rom=None)` which pages the
+  CLIB ROM into slot 13 for bbc-clib (overridable for the ROM-missing proof).
+- `scripted/conftest.py` adds a `mode` fixture parametrized over
+  `("bbc", "bbc-clib")`; bbc-clib auto-skips if `roms/clib.rom` is absent.
+- All 8 disc tests (console, screen, clock, keyboard, break, fileio, dir,
+  osfile) now run in BOTH modes with identical assertions.
+- New `test_rom_swap.py`: proves a bbc-clib program errors with
+  "cc65 CLIB ROM not found" WITHOUT the ROM and runs to completion WITH it
+  (Q3) — i.e. it genuinely uses the ROM, not a local copy.
+- `run_integration_tests.sh` now ensures the cc65 libs + CLIB ROM exist (builds
+  via `make -C build-rom all` if missing, or `REBUILD_ROM=1` to force) before
+  building discs.
+- **Result: 24 passed, 1 skipped** (the intentional MODE-0 graphics reader);
+  every functional test green in both `bbc` and `bbc-clib`. fileio/osfile pass
+  in bbc-clib too, confirming the fixed osfind/osfile run correctly from the ROM.
+
 ### Remaining in Phase 1 (Stage B — deferred per decision)
 - Repoint cc65-clib `BBCDIR/COMDIR/RTDIR` at `$(CC65_SRC)/libsrc/*` and delete
   the duplicate trees, after dual-mode tests are green (verify common/runtime

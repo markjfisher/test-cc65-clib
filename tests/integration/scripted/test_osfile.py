@@ -12,9 +12,8 @@ import pytest
 import clib_harness as h
 
 
-@h.requires_disc("TOSFIL")
-def test_osfile_save_read_delete():
-    with h.launch("TOSFIL") as bbc:
+def test_osfile_save_read_delete(mode):
+    with h.launch("TOSFIL", mode) as bbc:
         h.boot(bbc)
         h.run_disc_program(bbc, "TOSFIL", settle=4.0)
 

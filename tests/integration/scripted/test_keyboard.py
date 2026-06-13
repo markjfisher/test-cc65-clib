@@ -13,9 +13,8 @@ import pytest
 import clib_harness as h
 
 
-@h.requires_disc("TKBHIT")
-def test_cgetc_reads_key():
-    with h.launch("TKBHIT") as bbc:
+def test_cgetc_reads_key(mode):
+    with h.launch("TKBHIT", mode) as bbc:
         h.boot(bbc)
 
         h.type_line(bbc, "*RUN TKBHIT")

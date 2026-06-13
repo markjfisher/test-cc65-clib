@@ -12,9 +12,8 @@ import pytest
 import clib_harness as h
 
 
-@h.requires_disc("TDIR")
-def test_directory_listing():
-    with h.launch("TDIR") as bbc:
+def test_directory_listing(mode):
+    with h.launch("TDIR", mode) as bbc:
         h.boot(bbc)
         h.run_disc_program(bbc, "TDIR")
 

@@ -107,8 +107,20 @@ else
   exit 0
 fi
 
+# --- Ensure cc65 libs + CLIB ROM exist ----------------------------------
+# The dual-mode (bbc + bbc-clib) discs need both cc65 libraries, and bbc-clib
+# runs need roms/clib.rom. Build them if missing, or force with REBUILD_ROM=1.
+# (A heavy step: rebuilds the cc65-clib ROM and the cc65 bbc/bbc-clib libs.)
+if [ "${REBUILD_ROM:-0}" = "1" ] \
+   || [ ! -f roms/clib.rom ] \
+   || [ ! -f "$CC65_DIR/lib/bbc.lib" ] \
+   || [ ! -f "$CC65_DIR/lib/bbc-clib.lib" ]; then
+  echo "  Building cc65 libraries and CLIB ROM (make -C build-rom all)..."
+  make -C build-rom all
+fi
+
 # --- Build test discs ---------------------------------------------------
-echo "  Building test disc images..."
+echo "  Building test disc images (bbc + bbc-clib)..."
 bash tests/integration/scripts/build_test_discs.sh
 
 # --- Run tests ----------------------------------------------------------

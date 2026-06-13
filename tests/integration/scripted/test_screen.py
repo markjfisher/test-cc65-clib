@@ -11,9 +11,8 @@ import pytest
 import clib_harness as h
 
 
-@h.requires_disc("TSCREN")
-def test_screen_lines_and_gotoxy():
-    with h.launch("TSCREN") as bbc:
+def test_screen_lines_and_gotoxy(mode):
+    with h.launch("TSCREN", mode) as bbc:
         h.boot(bbc)
         h.run_disc_program(bbc, "TSCREN")
 

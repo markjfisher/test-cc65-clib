@@ -14,9 +14,8 @@ import pytest
 import clib_harness as h
 
 
-@h.requires_disc("TBREAK")
-def test_brk_handler_catches_break():
-    with h.launch("TBREAK") as bbc:
+def test_brk_handler_catches_break(mode):
+    with h.launch("TBREAK", mode) as bbc:
         h.boot(bbc)
         h.run_disc_program(bbc, "TBREAK")
 

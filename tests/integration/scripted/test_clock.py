@@ -12,9 +12,8 @@ import pytest
 import clib_harness as h
 
 
-@h.requires_disc("TCLOCK")
-def test_clock_advances():
-    with h.launch("TCLOCK") as bbc:
+def test_clock_advances(mode):
+    with h.launch("TCLOCK", mode) as bbc:
         h.boot(bbc)
         h.run_disc_program(bbc, "TCLOCK", settle=4.0)
 

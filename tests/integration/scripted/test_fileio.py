@@ -15,9 +15,8 @@ import pytest
 import clib_harness as h
 
 
-@h.requires_disc("TFDISK")
-def test_file_roundtrip():
-    with h.launch("TFDISK") as bbc:
+def test_file_roundtrip(mode):
+    with h.launch("TFDISK", mode) as bbc:
         h.boot(bbc)
         h.run_disc_program(bbc, "TFDISK", settle=6.0)
 

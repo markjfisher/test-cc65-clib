@@ -12,9 +12,8 @@ import pytest
 import clib_harness as h
 
 
-@h.requires_disc("TCONSL")
-def test_console_output():
-    with h.launch("TCONSL") as bbc:
+def test_console_output(mode):
+    with h.launch("TCONSL", mode) as bbc:
         h.boot(bbc)
         h.run_disc_program(bbc, "TCONSL")
 

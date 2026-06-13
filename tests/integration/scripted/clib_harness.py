@@ -58,9 +58,14 @@ BEEBIUM_SERVER = _getenv_path(
 DFS_ROM = _rom("acorn-dfs_2_26.rom")
 MOS_ROM = _rom("acorn-mos_1_20.rom")
 BASIC_ROM = _rom("bbc-basic_2.rom")
-DISCS_DIR = (
-    Path(__file__).resolve().parents[3] / "build" / "integration-testing" / "discs"
-)
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+DISCS_DIR = _REPO_ROOT / "build" / "integration-testing" / "discs"
+# The cc65 CLIB ROM (built by `make -C build-rom`), loaded for bbc-clib runs.
+CLIB_ROM = _REPO_ROOT / "roms" / "clib.rom"
+
+# The two cc65 targets we exercise. bbc links everything into RAM; bbc-clib
+# resolves stateless library functions to the CLIB sideways ROM.
+MODES = ("bbc", "bbc-clib")
 
 _REQUIRED = {
     "beebium-server": BEEBIUM_SERVER,
@@ -72,39 +77,54 @@ _MISSING = [n for n, p in _REQUIRED.items() if not p or not p.exists()]
 SKIP_NEEDED = bool(_MISSING)
 SKIP_REASON = "missing: " + ", ".join(_MISSING) if _MISSING else ""
 
-# DFS sideways slot for the disc filing system ROM.
+# Sideways slots. beebium Model B aliases 4 physical sockets across 16 logical
+# slots (socket = slot mod 4): DFS sits in socket 0 (slot 12) and BASIC in
+# socket 3 (slot 15), so the CLIB ROM uses socket 1 (slot 13).
 DFS_SLOT = 12
+CLIB_SLOT = 13
 
 
-def disc_path(short_name: str) -> Path:
-    """Path to a built test disc image (e.g. "TCONSL" -> .../TCONSL.ssd)."""
-    return DISCS_DIR / f"{short_name}.ssd"
+def disc_path(short_name: str, mode: str = "bbc") -> Path:
+    """Path to a built test disc image, e.g. mode="bbc" -> .../bbc/TCONSL.ssd."""
+    return DISCS_DIR / mode / f"{short_name}.ssd"
 
 
-def requires_disc(short_name: str):
-    """Skip marker that also checks the specific disc image was built."""
+def ensure_ready(short_name: str, mode: str = "bbc"):
+    """pytest.skip if prerequisites for running ``short_name`` in ``mode`` are
+    missing (beebium/ROM deps, the built disc, or the CLIB ROM for bbc-clib)."""
     if SKIP_NEEDED:
-        return pytest.mark.skipif(True, reason=SKIP_REASON)
-    return pytest.mark.skipif(
-        not disc_path(short_name).exists(),
-        reason=f"disc image {short_name}.ssd not built "
-        f"(run tests/integration/scripts/build_test_discs.sh)",
-    )
+        pytest.skip(SKIP_REASON)
+    if not disc_path(short_name, mode).exists():
+        pytest.skip(
+            f"disc {mode}/{short_name}.ssd not built "
+            f"(run tests/integration/scripts/build_test_discs.sh)"
+        )
+    if mode == "bbc-clib" and not CLIB_ROM.exists():
+        pytest.skip("roms/clib.rom not built (run make -C build-rom)")
 
 
 @contextlib.contextmanager
-def launch(disc_short_name: str | None = None):
+def launch(disc_short_name=None, mode: str = "bbc", with_clib_rom=None):
     """Launch beebium as a Model B with DFS + a 1770 controller.
 
-    If ``disc_short_name`` is given, its .ssd is inserted in drive 0.
-    The emulator is run as fast as the host allows.
+    ``mode`` selects which target's disc subdirectory to mount and (for
+    bbc-clib) whether to page in the CLIB ROM. ``with_clib_rom`` overrides that
+    (e.g. False to prove a bbc-clib program fails without the ROM). If a disc is
+    requested its prerequisites are checked and the test is skipped if missing.
     """
+    if disc_short_name is not None:
+        ensure_ready(disc_short_name, mode)
+    if with_clib_rom is None:
+        with_clib_rom = mode == "bbc-clib"
+
     extra = [
         "--sideways", f"{DFS_SLOT}:rom:{DFS_ROM}",
         "--fdc", "acorn-1770",
     ]
+    if with_clib_rom:
+        extra += ["--sideways", f"{CLIB_SLOT}:rom:{CLIB_ROM}"]
     if disc_short_name is not None:
-        extra += ["--floppy", f"0:{disc_path(disc_short_name)}"]
+        extra += ["--floppy", f"0:{disc_path(disc_short_name, mode)}"]
 
     with Beebium.launch(
         server_filepath=str(BEEBIUM_SERVER),
