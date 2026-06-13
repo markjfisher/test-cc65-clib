@@ -340,6 +340,24 @@ Notes for later:
   ROM regeneration is deterministic (cc65 tree unchanged); `run_tests.sh
   --quick` runs all 362 unit assertions green.
 
+### Phase 5 (jump-table / vectoring) — DESIGNED + PROTOTYPED, NOT ADOPTED
+- Per instruction, only the jump-table/vectoring was attempted; the sideways-ROM
+  private-workspace idea was left out of scope.
+- A full prototype was implemented (fixed `$8100` JUMPTABLE segment, append-only
+  `jumptable.def`, generator + stub changes) and verified correct in isolation:
+  the table lands at `$8100`, stubs vector to the right slots, each slot JMPs to
+  the real function, and a bbc-clib program printed a vectored `strlen` result.
+- It also surfaced and fixed a real ROM-image issue: gapped memory regions need
+  `fill = yes` so file offsets match load addresses (otherwise the fixed table
+  loads at the wrong address).
+- BUT it destabilised the bbc-clib integration tests (programs abend/hang at a
+  vectored call, deterministic for some, flaky for others, pointing at a
+  ROM-paging/boot-timing interaction). As this needs focused interactive
+  debugging (not safe to resolve unattended), the prototype was **reverted** to
+  keep the proven, stable direct-address bbc-clib, and the work is captured as a
+  design + open-issue writeup in `docs/BBC_CLIB_JUMPTABLE_DESIGN.md` (the
+  implementation remains in git history). Suite restored to 24 passed, 1 skipped.
+
 ### Remaining in Phase 1 (Stage B — deferred per decision)
 - Repoint cc65-clib `BBCDIR/COMDIR/RTDIR` at `$(CC65_SRC)/libsrc/*` and delete
   the duplicate trees, after dual-mode tests are green (verify common/runtime
