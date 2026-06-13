@@ -2,14 +2,19 @@
 # Build ROM from cc65-clib project and copy to local roms/ directory
 #
 
-CC65_ROOT = ../../cc65
-CLIB_ROOT = ../../cc65-clib
-CC65_CLIB_TARGET = bbc-clib
-CC65_TARGET = bbc
+# Paths are overridable from the environment / make command line.
+#   CC65_ROOT        cc65 fork checkout
+#   CLIB_ROOT        cc65-clib generator checkout
+#   TARGET_ROM_COPY  optional extra dir to copy the ROM to (e.g. an emulator's
+#                    ROM folder). Leave empty to skip that copy.
+CC65_ROOT ?= ../../cc65
+CLIB_ROOT ?= ../../cc65-clib
+CC65_CLIB_TARGET ?= bbc-clib
+CC65_TARGET ?= bbc
 
-ROM_PATH = ../roms
-BUILD_DIR = ../build
-TARGET_ROM_COPY = $(HOME)/dev/bbc/roms
+ROM_PATH ?= ../roms
+BUILD_DIR ?= ../build
+TARGET_ROM_COPY ?=
 
 .PHONY: all clean rebuild-clib rebuild-clib-rom rebuild-cc65-lib
 
@@ -30,12 +35,16 @@ rebuild-clib-rom:
 	cp $(CLIB_ROOT)/build/clib.lbl $(ROM_PATH)/clib.lbl
 	cp $(CLIB_ROOT)/build/clib.lib $(ROM_PATH)/clib.lib
 	cp $(CLIB_ROOT)/build/clib-mos.lbl $(ROM_PATH)/clib-mos.lbl
-	@echo "Copying ROM and symbol files to emulator roms directory..."
-	mkdir -p $(TARGET_ROM_COPY)
-	cp $(CLIB_ROOT)/build/clib.rom $(TARGET_ROM_COPY)/clib.rom
-	cp $(CLIB_ROOT)/build/clib.lbl $(TARGET_ROM_COPY)/clib.lbl
-	cp $(CLIB_ROOT)/build/clib.lib $(TARGET_ROM_COPY)/clib.lib
-	cp $(CLIB_ROOT)/build/clib-mos.lbl $(TARGET_ROM_COPY)/clib-mos.lbl
+	@if [ -n "$(TARGET_ROM_COPY)" ]; then \
+	  echo "Copying ROM and symbol files to emulator roms directory $(TARGET_ROM_COPY)..."; \
+	  mkdir -p "$(TARGET_ROM_COPY)"; \
+	  cp $(CLIB_ROOT)/build/clib.rom "$(TARGET_ROM_COPY)/clib.rom"; \
+	  cp $(CLIB_ROOT)/build/clib.lbl "$(TARGET_ROM_COPY)/clib.lbl"; \
+	  cp $(CLIB_ROOT)/build/clib.lib "$(TARGET_ROM_COPY)/clib.lib"; \
+	  cp $(CLIB_ROOT)/build/clib-mos.lbl "$(TARGET_ROM_COPY)/clib-mos.lbl"; \
+	else \
+	  echo "TARGET_ROM_COPY not set - skipping emulator ROM copy."; \
+	fi
 
 # Build the production cc65-clib.lib if needed  
 rebuild-cc65-lib:
@@ -48,6 +57,6 @@ clean:
 	-rm $(CC65_ROOT)/lib/$(CC65_CLIB_TARGET).lib
 	cd $(CLIB_ROOT)/src && $(MAKE) clean
 	-rm -f $(ROM_PATH)/clib*
-	-rm -f $(TARGET_ROM_COPY)/clib*
+	@if [ -n "$(TARGET_ROM_COPY)" ]; then rm -f "$(TARGET_ROM_COPY)"/clib*; fi
 	-rm -rf $(CC65_ROOT)/libwrk/bbc
 	-rm -rf $(CC65_ROOT)/libwrk/bbc-clib

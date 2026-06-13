@@ -310,6 +310,36 @@ Notes for later:
   every functional test green in both `bbc` and `bbc-clib`. fileio/osfile pass
   in bbc-clib too, confirming the fixed osfind/osfile run correctly from the ROM.
 
+### Phase 3 (retire/realign legacy tests) — DONE
+- Added a `strncpy` unit test (NUL-padding + truncation-without-NUL), the only
+  case the legacy `test-c-comprehensive` covered that the unit suite did not.
+- Retired the redundant interactive programs: `test-maths`, `test-strings`,
+  `test-files`, `test-c-comprehensive`, `test-break-handler`.
+- Moved the FujiNet serial app to `tests/manual/serial-fujinet/` with a
+  `tests/manual/README.md` recording the coverage mapping and the two
+  intentionally-unautomated BRK paths (ESC pass-through, debug-bomb-banner/hang).
+- Updated `AGENTS.md` structure/legacy sections.
+- Unit suite: 362 assertions, 0 fail, 53 tests.
+
+### Phase 4 (de-hardcode the build) — DONE
+- `build-rom/Makefile`: `CC65_ROOT`, `CLIB_ROOT`, `CC65_TARGET`,
+  `CC65_CLIB_TARGET`, `ROM_PATH`, `BUILD_DIR` now `?=` overridable;
+  `TARGET_ROM_COPY` defaults empty and the emulator copy (and clean) are guarded
+  so it is optional (no more hardcoded `$HOME/dev/bbc/roms`, no `rm /clib*`).
+- `build.sh`: stripped of the retired per-test/JSON logic; now a thin wrapper
+  over `build-rom` (`build.sh` / `build.sh -r`).
+- `run_tests.sh`: the single validate-everything entry point — full ROM + both
+  cc65 libs by default, `--quick` (libs only), `--no-beebium`.
+- `run_unit_tests.sh`: adds `~/.cargo/bin` / `~/.local/bin` to PATH so
+  `soft65c02_unit` is found from a bare environment.
+- `cc65-clib/compare-cc65.sh`: rewritten into a working, de-hardcoded
+  check/sync tool (`--check` default, `--diff`, `--sync`); ignores whitespace,
+  handles the flat-vs-brk/bbc-clib break-handler mapping. Currently reports
+  "in sync".
+- Verified: `./build.sh` rebuilds the ROM and skips the (unset) emulator copy;
+  ROM regeneration is deterministic (cc65 tree unchanged); `run_tests.sh
+  --quick` runs all 362 unit assertions green.
+
 ### Remaining in Phase 1 (Stage B — deferred per decision)
 - Repoint cc65-clib `BBCDIR/COMDIR/RTDIR` at `$(CC65_SRC)/libsrc/*` and delete
   the duplicate trees, after dual-mode tests are green (verify common/runtime

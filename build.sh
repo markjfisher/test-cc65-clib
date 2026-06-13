@@ -1,165 +1,44 @@
 #!/bin/bash
+#
+# build.sh - convenience wrapper for building the cc65 CLIB ROM + libraries.
+#
+# The old interactive per-test build flow (which built tests/test-* programs and
+# hand-rolled dfstool JSON) has been retired: those legacy tests are gone, the
+# integration disc images are now built by tests/integration/scripts/
+# build_test_discs.sh (via scripts/create_ssd.py), and the full validation flow
+# lives in ./run_tests.sh.
+#
+# This script now just drives build-rom/Makefile, whose paths are env-overridable
+# (CC65_ROOT, CLIB_ROOT, TARGET_ROM_COPY).
+#
+# Usage:
+#   ./build.sh            # build ROM + cc65 libs if needed (delegates to build-rom)
+#   ./build.sh -r         # force a clean rebuild of the CLIB ROM and cc65 libs
+#   ./build.sh -h         # help
 
-# Build script for BBC Micro CLIB ROM testing framework
-# Builds ROM and multiple test programs using cc65 bbc-clib target
+set -euo pipefail
+cd "$(dirname "$0")"
 
-set -e  # Exit on any error
+usage() {
+  cat <<'EOF'
+Usage: build.sh [-r|-h]
+  (no args)  Build the CLIB ROM and cc65 bbc/bbc-clib libraries (make -C build-rom all).
+  -r         Force a clean rebuild (make -C build-rom clean all).
+  -h         Show this help.
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
-test_dirs=(
-  "tests/test-c-comprehensive"
-  "tests/test-maths"
-  "tests/test-strings"
-  "tests/test-break-handler"
-  "tests/test-files"
-  "tests/test-serial"
-)
-
-# Configuration
-START_ADDR="0x1900"
-
-# Function to build a single test
-build_test() {
-  local test_dir=$1
-  local test_name=$(basename $test_dir)
-
-  echo "Building test: $test_name"
-
-  if [ ! -d "$test_dir" ]; then
-    echo "Error: Test directory $test_dir not found"
-    return 1
-  fi
-
-  cd "$test_dir"
-  make clean
-  make all
-  cd - > /dev/null
-}
-
-# Function to build ROM if needed
-ensure_rom() {
-  if [ ! -f "roms/clib.rom" ] || [ ! -f "roms/clib.lib" ]; then
-    echo "ROM not found, building..."
-    make -C build-rom all
-  else
-    echo "ROM already available"
-  fi
-}
-
-force_rom() {
-  echo "Forcing ROM/cc65 build"
-  make -C build-rom clean all
-}
-
-# Function to build all tests
-build_all_tests() {
-  for test_dir in "${test_dirs[@]}"; do
-    if [ -d "$test_dir" ]; then
-      create_json $START_ADDR $test_dir
-      build_test "$test_dir"
-    else
-      echo "Warning: Test directory $test_dir not found, skipping"
-    fi
-  done
-}
-
-# Function to create disk images with JSON manifests
-create_json() {
-  echo
-  local start_addr_hex=$1
-  local test_dir=$2
-  echo "Creating json file for $test_dir"
-  # Convert hex address to BBC format (0x1900 -> &001900)
-  local bbc_addr="&$(printf "%06X" $((start_addr_hex)))"
-  echo "Using BBC load/exec address: $bbc_addr"
-
-  local json_name="test.json"
-  local build_path=${SCRIPT_DIR}/build/$(basename $test_dir)
-  local exe_path=${build_path}/test
-
-  # Create JSON manifest
-  cat > "$test_dir/$json_name" << EOF
-{
-  "version": 1,
-  "discTitle": "ctest",
-  "discSize": 800,
-  "bootOption": "none", 
-  "cycleNumber": 0,
-  "files": [
-    {
-      "fileName": "TEST",
-      "directory": "\$",
-      "locked": false,
-      "loadAddress": "$bbc_addr",
-      "executionAddress": "$bbc_addr", 
-      "contentPath": "$exe_path",
-      "type": "other"
-    }
-  ]
-}
+To run the test suites use ./run_tests.sh (unit + dual-mode integration).
 EOF
 }
 
-# Function to show results
-show_results() {
-  echo "ROM files:"
-  ls -la roms/ 2>/dev/null || echo "No ROM files found"
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  -r) echo "Forcing clean rebuild of CLIB ROM and cc65 libraries..."
+      make -C build-rom clean all ;;
+  "") echo "Building CLIB ROM and cc65 libraries..."
+      make -C build-rom all ;;
+  *)  echo "unknown arg: $1" >&2; usage; exit 2 ;;
+esac
 
-  echo
-  echo "Test executables:"
-  find tests -name "test" -type f -exec ls -la {} \; 2>/dev/null || echo "No test executables found"
-
-  echo
-  echo "Disk images:"
-  find build -name \*.ssd -type f -exec ls -la {} \; 2>/dev/null || echo "No disk images found"
-}
-
-usage() {
-  echo "Usage: $(basename $0) [-r|-t|-c|-a|-h]"
-  echo "    -r     force clib ROM and cc65-clib re-build"
-  echo "    -t     run all Tests"
-  echo "    -c     Clean tests"
-  echo "    -a     All: build tests, create disks"
-  echo "    -h     Show Help"
-  exit 0
-}
-
-while getopts "rtcah" opt; do
-  case $opt in
-    r)
-      force_rom
-      exit 0
-      ;;
-    t)
-      build_all_tests
-      exit 0
-      ;;
-    c)
-      echo "Cleaning all tests..."
-      # make -C build-rom clean
-      for test_dir in tests/*/; do
-        if [ -f "$test_dir/Makefile" ]; then
-          make -C "$test_dir" clean
-        fi
-      done
-      echo "Clean completed"
-      exit 0
-      ;;
-    a)
-      echo "=== BBC CLIB ROM Test Framework ==="
-      ensure_rom
-      build_all_tests
-      show_results
-      echo
-      echo "✅ Build completed successfully!"
-      echo "To test: Load ROM (roms/clib.rom) into BBC emulator and run test executables"
-      exit 0
-      ;;
-    h|*)
-      usage
-      exit 0
-  esac
-done
-
-usage
+echo
+echo "ROM files in roms/:"
+ls -la roms/ 2>/dev/null || echo "  (none)"

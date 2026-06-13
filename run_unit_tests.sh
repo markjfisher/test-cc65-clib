@@ -10,6 +10,10 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# soft65c02_unit is typically a cargo-installed binary; make sure the usual
+# install locations are on PATH so the runner works from a bare environment.
+export PATH="$PATH:$HOME/.cargo/bin:$HOME/.local/bin"
+
 if ! command -v soft65c02_unit >/dev/null 2>&1; then
   echo "    soft65c02_unit not found on PATH -- skipping unit tests."
   echo "    (install from https://github.com/...)"
