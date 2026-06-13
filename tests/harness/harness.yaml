@@ -13,6 +13,6 @@ src_files:
   - ./src/stubs.s
   - ./src/file_mock.s
 
-# app.inc is created in the current folder by create_app_inc.sh
+# will allow inc files from the root path, was tied into older hello.inc
 asm_include_paths:
   - ./

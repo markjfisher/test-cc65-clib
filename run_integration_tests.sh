@@ -16,6 +16,7 @@
 #   - MOS and BASIC ROMs (bundled with beebium build)
 #   - DFS ROM (acorn-dfs_2_26.rom, bundled with beebium build)
 #   - dfstool (install from https://github.com/rcook/dfstool)
+#   - basictool (used by scripts/create_ssd.py)
 #   - cc65 (at ../cc65)
 #
 # Skips gracefully if dependencies not met, with a clear message.
@@ -83,9 +84,14 @@ if [ ! -x "$CC65_CLI" ]; then
   exit 0
 fi
 
-# --- Check dfstool ------------------------------------------------------
+# --- Check dfstool / basictool (both used by scripts/create_ssd.py) -----
 if ! command -v dfstool >/dev/null 2>&1; then
   echo "    dfstool not found. Install from https://github.com/rcook/dfstool"
+  echo "    Skipping integration tests."
+  exit 0
+fi
+if ! command -v basictool >/dev/null 2>&1; then
+  echo "    basictool not found (required by scripts/create_ssd.py)."
   echo "    Skipping integration tests."
   exit 0
 fi

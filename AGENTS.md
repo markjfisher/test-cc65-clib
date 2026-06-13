@@ -104,7 +104,6 @@ test-cc65-clib/
 ├── tests/
 │   ├── harness/                  # Soft65c02 unit test harness
 │   │   ├── harness.yaml          # soft65c02_unit config
-│   │   ├── create_app_inc.sh     # .lbl -> .inc converter
 │   │   ├── cfg/harness.ld65.cfg  # Linker config
 │   │   └── src/
 │   │       ├── crt0.s            # Entry: calls _test_func, hits brk
