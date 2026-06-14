@@ -79,31 +79,44 @@ table landed at file offset `$3F` and was loaded at `$803F`. Fix: `fill = yes` o
 fixed-address ROM layout work and is worth keeping in mind regardless of the
 jump table.
 
-## 6. Open issue (why it was not adopted)
+## 6. Open issue (why it was not adopted) — UPDATED after investigation
 
-With the vectoring ROM in place, the **bbc-clib integration tests became
-unstable**: several programs abended back to BASIC / hung at a vectored call,
-deterministically for some programs (e.g. fileio using `strcmp`) and flakily for
-others (TCONSL passed under one test but failed under another). At an observed
-failure the CPU was back in the MOS idle loop with BASIC paged — i.e. the program
-exited rather than completing. Curiously, a program that made a direct ROM call
-*before* the vectored call worked, while one that made only local calls first did
-not, which points at a ROM-paging / boot-timing interaction rather than a fault
-in the table itself (the table and its targets verified correct).
+The vectoring is correct; the blocker is a **ROM-load / detection timing
+sensitivity** exposed by the larger ROM, NOT a fault in the table. Findings:
 
-This needs focused, interactive debugging (single-step a failing vectored call,
-watch `$F4`/`$FE30` and the stack across `crt0` -> `main` -> slot -> body) — not
-appropriate for an unattended run. Until resolved, the bbc-clib target keeps the
+* In isolation the prototype works: `VECOK`/`VECGOTO`/`VECFAIL` and even a
+  repeated-launch loop (`multi_launch.py`) all run correctly through the table.
+* But a bbc-clib program's `crt0` runs `detect_clib_rom`, which scans the
+  sideways slots reading `$8000`. With the bigger vectored ROM the CLIB ROM is
+  sometimes **not yet CPU-visible** at that instant, so detection returns
+  `clib_rom_available = 0` and the program aborts. Confirmed: `TSCREN` reliably
+  shows `clib_rom_available = 0` even though the control-API `read_slot_data`
+  reports the ROM present in the slot.
+* Doing a `read_slot_data` (control-API) sync **before** `*RUN` reliably fixes a
+  single run, but the full pytest suite (25 sequential emulator launches over
+  ~4.5 min) still flakes ~9 bbc-clib cases — i.e. the instability scales with the
+  number/duration of emulator launches, pointing at the emulator harness's
+  ROM-load timing/teardown rather than the 6502 code.
+
+This is the real root cause to resolve (likely emulator-side: ensure the larger
+sideways ROM is fully CPU-visible before the program runs, and that repeated
+launches don't degrade that). A reproducible debug bundle (programs, ROM,
+symbols, drivers, and "what to watch") is in
+`docs/../debug/jumptable/` (see its README).
+
+The generator/prototype is preserved on the cc65-clib branch
+`jumptable-prototype` (this time committed). The bbc-clib `main` keeps the
 proven, stable **direct-address** stubs.
 
 ## 7. Recommendation / next steps
 
-1. Reproduce the §6 failure under a debugger; determine whether the CLIB ROM is
-   actually paged at the vectored `jsr`, and whether `crt0`/MOS interaction
-   un-pages it after only-local calls.
-2. If it is a paging-state issue, consider making each jump-table slot
-   self-paging (select the CLIB ROM, JMP, restore) — but that needs the ROM bank
-   number, i.e. the private-workspace question that is out of scope here.
-3. Once stable, add a forward-compatibility test: build an app, rebuild the ROM
+1. Use `debug/jumptable/` to step-debug `detect_clib_rom` at a failing run and
+   capture the bytes read at `$8000` while slot 13 is paged — confirm whether the
+   ROM is simply absent from the CPU address space at scan time.
+2. If so, fix the load/visibility timing (emulator harness, or have `crt0`
+   retry/settle the scan) so detection is reliable for larger ROMs.
+3. Optionally make each jump-table slot self-paging — but that needs the ROM
+   bank number, i.e. the private-workspace question that is out of scope here.
+4. Once stable, add a forward-compatibility test: build an app, rebuild the ROM
    with perturbed code size (table unchanged), and rerun the *old* binary against
    the new ROM to prove decoupling.
