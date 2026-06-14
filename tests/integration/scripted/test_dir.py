@@ -12,13 +12,12 @@ import pytest
 import clib_harness as h
 
 
-def test_directory_listing(mode):
-    with h.launch("TDIR", mode) as bbc:
-        h.boot(bbc)
-        h.run_disc_program(bbc, "TDIR")
+def test_directory_listing(bbc_for_mode, mode):
+    h.reset_and_boot(bbc_for_mode, "TDIR", mode)
+    h.run_disc_program(bbc_for_mode, "TDIR")
 
-        h.assert_screen(bbc, "TDIR")
-        h.assert_screen(bbc, "ALPHA")
-        h.assert_screen(bbc, "BETA")
-        h.assert_screen(bbc, "END")
-        h.assert_not_screen(bbc, "NODIR")
+    h.assert_screen(bbc_for_mode, "TDIR")
+    h.assert_screen(bbc_for_mode, "ALPHA")
+    h.assert_screen(bbc_for_mode, "BETA")
+    h.assert_screen(bbc_for_mode, "END")
+    h.assert_not_screen(bbc_for_mode, "NODIR")

@@ -12,10 +12,9 @@ import pytest
 import clib_harness as h
 
 
-def test_clock_advances(mode):
-    with h.launch("TCLOCK", mode) as bbc:
-        h.boot(bbc)
-        h.run_disc_program(bbc, "TCLOCK", settle=4.0)
+def test_clock_advances(bbc_for_mode, mode):
+    h.reset_and_boot(bbc_for_mode, "TCLOCK", mode)
+    h.run_disc_program(bbc_for_mode, "TCLOCK", settle=4.0)
 
-        h.assert_screen(bbc, "CLOCKOK")
-        h.assert_not_screen(bbc, "CLOCKBAD")
+    h.assert_screen(bbc_for_mode, "CLOCKOK")
+    h.assert_not_screen(bbc_for_mode, "CLOCKBAD")

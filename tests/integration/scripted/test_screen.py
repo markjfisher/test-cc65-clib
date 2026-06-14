@@ -11,15 +11,14 @@ import pytest
 import clib_harness as h
 
 
-def test_screen_lines_and_gotoxy(mode):
-    with h.launch("TSCREN", mode) as bbc:
-        h.boot(bbc)
-        h.run_disc_program(bbc, "TSCREN")
+def test_screen_lines_and_gotoxy(bbc_for_mode, mode):
+    h.reset_and_boot(bbc_for_mode, "TSCREN", mode)
+    h.run_disc_program(bbc_for_mode, "TSCREN")
 
-        # The five numbered lines printed from the home position. (cc65 clrscr()
-        # emits CLS *and* a trailing newline, so the home block starts at row 1.)
-        for i in range(5):
-            assert h.row_text(bbc, i + 1) == f"{i}: LINE", h.screen_text(bbc)
+    # The five numbered lines printed from the home position. (cc65 clrscr()
+    # emits CLS *and* a trailing newline, so the home block starts at row 1.)
+    for i in range(5):
+        assert h.row_text(bbc_for_mode, i + 1) == f"{i}: LINE", h.screen_text(bbc_for_mode)
 
-        # gotoxy(0, 10) positions absolutely, independent of the home block.
-        assert h.row_text(bbc, 10) == "MODE7OK", h.screen_text(bbc)
+    # gotoxy(0, 10) positions absolutely, independent of the home block.
+    assert h.row_text(bbc_for_mode, 10) == "MODE7OK", h.screen_text(bbc_for_mode)

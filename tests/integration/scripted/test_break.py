@@ -14,14 +14,13 @@ import pytest
 import clib_harness as h
 
 
-def test_brk_handler_catches_break(mode):
-    with h.launch("TBREAK", mode) as bbc:
-        h.boot(bbc)
-        h.run_disc_program(bbc, "TBREAK")
+def test_brk_handler_catches_break(bbc_for_mode, mode):
+    h.reset_and_boot(bbc_for_mode, "TBREAK", mode)
+    h.run_disc_program(bbc_for_mode, "TBREAK")
 
-        h.assert_screen(bbc, "ARMED")
-        h.assert_screen(bbc, "CAUGHT")
-        h.assert_screen(bbc, "DONE")
-        # If the handler had not trapped the BRK, the program would have fallen
-        # through to NOTRAP (or the language would have aborted it).
-        h.assert_not_screen(bbc, "NOTRAP")
+    h.assert_screen(bbc_for_mode, "ARMED")
+    h.assert_screen(bbc_for_mode, "CAUGHT")
+    h.assert_screen(bbc_for_mode, "DONE")
+    # If the handler had not trapped the BRK, the program would have fallen
+    # through to NOTRAP (or the language would have aborted it).
+    h.assert_not_screen(bbc_for_mode, "NOTRAP")

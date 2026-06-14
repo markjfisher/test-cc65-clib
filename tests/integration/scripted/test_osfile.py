@@ -12,13 +12,12 @@ import pytest
 import clib_harness as h
 
 
-def test_osfile_save_read_delete(mode):
-    with h.launch("TOSFIL", mode) as bbc:
-        h.boot(bbc)
-        h.run_disc_program(bbc, "TOSFIL", settle=4.0)
+def test_osfile_save_read_delete(bbc_for_mode, mode):
+    h.reset_and_boot(bbc_for_mode, "TOSFIL", mode)
+    h.run_disc_program(bbc_for_mode, "TOSFIL", settle=4.0)
 
-        h.assert_screen(bbc, "SAVEOK")
-        h.assert_screen(bbc, "READOK")
-        h.assert_screen(bbc, "DELOK")
-        h.assert_not_screen(bbc, "READBAD")
-        h.assert_not_screen(bbc, "DELBAD")
+    h.assert_screen(bbc_for_mode, "SAVEOK")
+    h.assert_screen(bbc_for_mode, "READOK")
+    h.assert_screen(bbc_for_mode, "DELOK")
+    h.assert_not_screen(bbc_for_mode, "READBAD")
+    h.assert_not_screen(bbc_for_mode, "DELBAD")

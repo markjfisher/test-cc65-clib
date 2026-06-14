@@ -15,10 +15,9 @@ import pytest
 import clib_harness as h
 
 
-def test_file_roundtrip(mode):
-    with h.launch("TFDISK", mode) as bbc:
-        h.boot(bbc)
-        h.run_disc_program(bbc, "TFDISK", settle=6.0)
+def test_file_roundtrip(bbc_for_mode, mode):
+    h.reset_and_boot(bbc_for_mode, "TFDISK", mode)
+    h.run_disc_program(bbc_for_mode, "TFDISK", settle=6.0)
 
-        h.assert_screen(bbc, "FILEOK")
-        h.assert_not_screen(bbc, "FILEBAD")
+    h.assert_screen(bbc_for_mode, "FILEOK")
+    h.assert_not_screen(bbc_for_mode, "FILEBAD")

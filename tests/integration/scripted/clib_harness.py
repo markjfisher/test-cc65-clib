@@ -163,6 +163,54 @@ def run_disc_program(bbc, short_name: str, settle: float = 3.0):
     pause(bbc)
 
 
+# ----- Shared-instance (session-scoped) helpers ------------------------------
+
+def reset_and_boot(bbc, short_name: str, mode: str = "bbc", wait: float = 1.5):
+    """Reset the machine, switch to a new disc, and boot to BASIC.
+
+    Ejects any mounted disc, inserts the one for ``short_name``/``mode``,
+    hardware-resets the CPU, and waits for the BASIC prompt.  Leaves the CPU
+    **running** so the caller can type commands.
+    """
+    bbc.keyboard.clear_typing()
+    drive = bbc.disc.drive0
+    if not drive.is_empty:
+        drive.eject(immediate=True)
+    drive.insert(str(disc_path(short_name, mode)))
+    bbc.disc.set_spin_up_delay(False)
+    bbc.debugger.reset()
+    bbc.debugger.run()
+    time.sleep(wait)
+
+
+@contextlib.contextmanager
+def launch_shared(mode: str = "bbc"):
+    """Launch one beebium instance with ROMs loaded, **no disc mounted**.
+
+    The caller uses ``reset_and_boot()`` (which switches discs via
+    drive-0 insert) to run each test.  Yields a paused Beebium so
+    callers can inspect it immediately.
+    """
+    extra = [
+        "--sideways", f"{DFS_SLOT}:rom:{DFS_ROM}",
+        "--fdc", "acorn-1770",
+    ]
+    if mode == "bbc-clib":
+        extra += ["--sideways", f"{CLIB_SLOT}:rom:{CLIB_ROM}"]
+
+    with Beebium.launch(
+        server_filepath=str(BEEBIUM_SERVER),
+        mos_filepath=str(MOS_ROM),
+        basic_filepath=str(BASIC_ROM),
+        extra_args=extra,
+    ) as bbc:
+        bbc.disc.set_spin_up_delay(False)
+        with contextlib.suppress(Exception):
+            bbc.system.set_speed_multiplier(0.0)
+        bbc.debugger.stop()
+        yield bbc
+
+
 def screen_text(bbc) -> str:
     """Full MODE 7 screen as a diagnostic string."""
     return dump_screen(bbc)
@@ -201,3 +249,4 @@ def row_text(bbc, row: int) -> str:
     """The text of a single (scroll-corrected) MODE 7 row, right-stripped."""
     rows = read_mode7_screen(bbc)
     return rows[row].rstrip() if 0 <= row < len(rows) else ""
+
