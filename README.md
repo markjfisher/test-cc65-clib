@@ -1,4 +1,12 @@
-# Test-cc65-clib: Test Suite for cc65 BBC Micro Target
+# RETIRED
+
+This project is retired, and has been fully merged into https://github.com/markjfisher/cc65-clib
+
+It is kept only for the history which was not merged.
+
+---
+
+## Test-cc65-clib: Test Suite for cc65 BBC Micro Target
 
 This project tests the cc65 fork's BBC Micro target (`-t bbc`)
 at `/home/markf/dev/bbc/cc65`. It uses two emulator-based test tiers.
